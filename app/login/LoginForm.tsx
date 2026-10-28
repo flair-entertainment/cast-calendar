@@ -20,6 +20,9 @@ export function LoginForm({ error }: { error?: string }) {
       {error === "link-expired" && (
         <p className="rounded-lg bg-beige p-3 text-sm">That login link has expired or was already used. Enter your email to get a new one.</p>
       )}
+      {error === "other-browser" && (
+        <p className="rounded-lg bg-beige p-3 text-sm">That link needs to be opened on the same phone or computer you requested it from. Enter your email below to get a new one, then open the email on this device.</p>
+      )}
       {!sent?.ok ? (
         <form action={send} className="space-y-3">
           <label className="block text-sm font-medium">Your email</label>
@@ -29,7 +32,7 @@ export function LoginForm({ error }: { error?: string }) {
         </form>
       ) : (
         <div className="space-y-4">
-          <p className="rounded-lg bg-white p-3 text-sm">{sent.message} Tap the link in the email, or type the code below.</p>
+          <p className="rounded-lg bg-white p-3 text-sm">{sent.message} Tap the link in the email on this device. If the email has a 6-digit code, you can type it below instead.</p>
           <form action={check} className="space-y-3">
             <input type="hidden" name="email" value={sent.email} />
             <label className="block text-sm font-medium">6-digit code</label>
