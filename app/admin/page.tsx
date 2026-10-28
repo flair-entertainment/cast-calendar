@@ -19,7 +19,7 @@ export default async function Overview({ searchParams }: { searchParams: Promise
   const days = monthDays(month);
 
   const [cast, rows, weeks] = await Promise.all([
-    getCast(supabase, { activeOnly: true }),
+    getCast(supabase, { activeOnly: true }).then((all) => all.filter((c) => c.confirmed)),
     getAvailability(supabase, days[0], days[days.length - 1]),
     getWeeks(supabase),
   ]);
@@ -56,7 +56,7 @@ export default async function Overview({ searchParams }: { searchParams: Promise
           <div className="flex flex-wrap items-end justify-between gap-4 mb-4">
             <div>
               <h1 className="font-serif text-3xl">Overview</h1>
-              <p className="text-sm text-muted">How many of the {N} active cast are available each day · {win.label}</p>
+              <p className="text-sm text-muted">How many of the {N} active, confirmed cast are available each day · {win.label}</p>
             </div>
             <div className="flex items-center gap-2">
               <Link href={qs("/admin", params, { m: shiftMonth(month, -1), d: undefined })} className="rounded-lg border border-line bg-white px-3 py-1.5">‹</Link>

@@ -32,7 +32,7 @@ Flair's performer availability system.
 
 ### 1. Create the database
 1. In Supabase, open your project, then **SQL Editor** in the left menu, then **New query**.
-2. Open `supabase/migrations/20261028000000_init.sql` from this repository, copy all of it, paste it in, click **Run**. You should see "Success". Then do the same, in date order, with every other file in `supabase/migrations/` (currently `20261028120000_multiple_roles.sql`).
+2. Open `supabase/migrations/20261028000000_init.sql` from this repository, copy all of it, paste it in, click **Run**. You should see "Success". Then do the same, in date order, with every other file in `supabase/migrations/` (currently `20261028120000_multiple_roles.sql`, then `20261028150000_self_signup.sql`).
 3. Optional, for testing: do the same with `supabase/seed_test_data.sql`. This adds 300 FAKE cast members (names start with "TEST").
 4. Add yourself (and other managers) as managers. New query, then run, using lower-case emails:
    ```sql
@@ -57,6 +57,7 @@ Flair's performer availability system.
    - `NEXT_PUBLIC_SUPABASE_ANON_KEY`: the anon / publishable key
    - `SUPABASE_SERVICE_ROLE_KEY`: the service_role / secret key (this one is secret)
    - `NEXT_PUBLIC_SITE_URL`: the website address, e.g. `https://cast-calendar.vercel.app`
+   - `SIGNUP_CODE`: the join code performers type to sign themselves up (make one up, e.g. `FLAIR-STAGE-26`)
 3. Click **Deploy**.
 
 ### 4. Make the login emails send (Resend)
@@ -67,6 +68,9 @@ Supabase's built-in email only sends a couple of emails an hour, so connect Rese
 4. **Authentication > Rate Limits**: raise "emails per hour" (e.g. to 100) so a whole cast can log in on the same day.
 
 ### 5. Add the cast
+**Performers can sign themselves up:** send the website address plus `/join` (e.g. `https://cast-calendar.vercel.app/join`) and the join code in the performer group chat. They fill in their own details and get in straight away. They show as **NEW** on the Cast list until a manager confirms them on their profile (tick **Confirmed**, then Save). New sign-ups aren't counted on the Overview until they're confirmed. If someone signs up who shouldn't have, untick **Active** on their profile to switch off their access. If the code gets passed round outside Flair, change `SIGNUP_CODE` in Vercel and redeploy.
+
+**Or managers can add people:**
 Managers: **Add cast** page, upload the spreadsheet (columns `full_name,email,phone,roles,location,skills`). Then send everyone the website address. They enter their email, get a link and a 6-digit code, and they're in. They stay logged in on that phone. Tell them to add it to their home screen (instructions are on their My details page).
 
 ## Removing the fake test data
@@ -90,7 +94,7 @@ Things you can change in one place: roles, locations, the "out of date" number o
 - Every table has Row Level Security. Performers can read and change only their own rows; managers (emails in `app_admins`) can read everything. See the migration file.
 - Performers can only edit their name, phone, location and skills. Roles, active and email are changed by managers through server code.
 - The secret service role key is only used in `lib/supabase/admin.ts`, which can't be imported into browser code, and only after a server-side manager check (or to check an email is on the roster at login).
-- Logins: invite-only. The login page only sends an email if the address is an active cast member or a manager.
+- Logins: the login page only sends an email if the address is an active cast member or a manager. Self sign-up (`/join`) needs the join code (`SIGNUP_CODE`, server only) and creates the login on the server, so Supabase's own "Allow new users to sign up" stays off.
 - Search engines are blocked (`robots.txt` and a `noindex` header on every page).
 
 ## Ideas for next features

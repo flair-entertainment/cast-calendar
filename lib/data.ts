@@ -45,6 +45,8 @@ export type CastMember = {
   location: string | null;
   skills: string[];
   active: boolean;
+  confirmed: boolean;
+  self_signup: boolean;
   is_test: boolean;
   last_updated: string;
 };

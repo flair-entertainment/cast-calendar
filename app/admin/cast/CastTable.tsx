@@ -17,6 +17,7 @@ export function CastTable({ cast, today }: { cast: CastMember[]; today: string }
   const [skill, setSkill] = useState("");
   const [active, setActive] = useState("active");
   const [staleOnly, setStaleOnly] = useState(false);
+  const [newOnly, setNewOnly] = useState(false);
   const [sel, setSel] = useState<Set<string>>(new Set());
 
   // Remember the selection while moving between pages (this browser only).
@@ -37,9 +38,10 @@ export function CastTable({ cast, today }: { cast: CastMember[]; today: string }
         (!loc || (loc === "none" ? !c.location : c.location === loc)) &&
         (!s || c.skills.some((k) => k.includes(s))) &&
         (active === "all" || (active === "active" ? c.active : !c.active)) &&
-        (!staleOnly || isStale(c.last_updated, today, STALE_DAYS)),
+        (!staleOnly || isStale(c.last_updated, today, STALE_DAYS)) &&
+        (!newOnly || !c.confirmed),
     );
-  }, [cast, q, role, loc, skill, active, staleOnly, today]);
+  }, [cast, q, role, loc, skill, active, staleOnly, newOnly, today]);
 
   const toggle = (id: string) => setSel((old) => { const s = new Set(old); s.has(id) ? s.delete(id) : s.add(id); return s; });
   const allFilteredSelected = filtered.length > 0 && filtered.every((c) => sel.has(c.id));
@@ -65,6 +67,7 @@ export function CastTable({ cast, today }: { cast: CastMember[]; today: string }
           <option value="all">Active and inactive</option>
         </select>
         <label className="flex items-center gap-1.5 text-sm"><input type="checkbox" checked={staleOnly} onChange={(e) => setStaleOnly(e.target.checked)} />Not updated in {STALE_DAYS}+ days</label>
+        <label className="flex items-center gap-1.5 text-sm"><input type="checkbox" checked={newOnly} onChange={(e) => setNewOnly(e.target.checked)} />New sign-ups to confirm ({cast.filter((c) => !c.confirmed).length})</label>
       </div>
 
       <div className="sticky top-0 z-10 flex flex-wrap items-center gap-3 bg-sand py-2 mb-2">
@@ -98,7 +101,7 @@ export function CastTable({ cast, today }: { cast: CastMember[]; today: string }
               return (
                 <tr key={c.id} className={sel.has(c.id) ? "bg-sand" : ""}>
                   <td className="p-2"><input type="checkbox" checked={sel.has(c.id)} onChange={() => toggle(c.id)} aria-label={`Select ${c.full_name}`} /></td>
-                  <td className="p-2"><Link href={`/admin/cast/${c.id}`} className="font-medium hover:underline">{c.full_name}</Link>{c.is_test && <span className="ml-2 text-[10px] rounded bg-beige px-1">TEST</span>}</td>
+                  <td className="p-2"><Link href={`/admin/cast/${c.id}`} className="font-medium hover:underline">{c.full_name}</Link>{c.is_test && <span className="ml-2 text-[10px] rounded bg-beige px-1">TEST</span>}{!c.confirmed && <span className="ml-2 text-[10px] font-semibold rounded bg-char text-beige px-1.5">NEW</span>}</td>
                   <td className="p-2">{rolesLabel(c.roles)}</td>
                   <td className="p-2">{locationLabel(c.location)}</td>
                   <td className="p-2 text-muted">{c.skills.join(", ")}</td>

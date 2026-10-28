@@ -102,7 +102,7 @@ export default async function Compare({ searchParams }: { searchParams: Promise<
               {grid.map(({ c, cells }) => (
                 <tr key={c.id}>
                   <td className="sticky left-0 z-10 bg-white p-2 border-b border-line">
-                    <Link href={`/admin/cast/${c.id}`} className="font-medium text-sm hover:underline">{c.full_name}</Link>
+                    <Link href={`/admin/cast/${c.id}`} className="font-medium text-sm hover:underline">{c.full_name}</Link>{!c.confirmed && <span className="ml-1.5 text-[10px] font-semibold rounded bg-char text-beige px-1">NEW</span>}
                     <div className="text-muted">{describe(c)}</div>
                   </td>
                   {cells.map((cell, i) => (

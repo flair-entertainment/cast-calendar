@@ -19,7 +19,7 @@ Flair's performer availability app. ~80-100 performers mark unavailability and t
 - The service role key is only used via `lib/supabase/admin.ts` (marked `server-only`), and only after `requireAdmin()` or for the login roster check.
 - Never put keys in code or git. Use `.env.local` (git-ignored) and tell the owner which values to add in Vercel's Environment Variables.
 - Never ask the owner to paste passwords or keys into the chat. When a tool needs a login, run the command that opens the browser.
-- Invite-only login (email link or 6-digit code). No public sign-up.
+- Login by email link or 6-digit code. Performers can self-register at /join only with the join code (SIGNUP_CODE); self sign-ups are `confirmed = false` until a manager confirms them. Supabase's own public sign-up stays off.
 - Keep search engines blocked.
 - Database changes go in new migration files in `supabase/migrations/`, never by editing an old one that has already been run.
 

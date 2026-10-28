@@ -16,7 +16,8 @@ export async function updateCastAdmin(formData: FormData) {
   const loc = String(formData.get("location") ?? "");
   const location = locations.includes(loc) ? loc : null;
   const active = formData.get("active") === "on";
-  await createAdminClient().from("cast_members").update({ roles: picked, location, active }).eq("id", id);
+  const confirmed = formData.get("confirmed") === "on";
+  await createAdminClient().from("cast_members").update({ roles: picked, location, active, confirmed }).eq("id", id);
   revalidatePath(`/admin/cast/${id}`);
   revalidatePath("/admin/cast");
 }

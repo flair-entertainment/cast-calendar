@@ -34,7 +34,7 @@ export default async function Profile({ params }: { params: Promise<{ id: string
         <Link href="/admin/cast" className="text-sm underline text-muted">← Cast list</Link>
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
-            <h1 className="font-serif text-3xl">{c.full_name}{c.is_test && <span className="ml-2 align-middle text-xs rounded bg-beige px-1.5">TEST</span>}</h1>
+            <h1 className="font-serif text-3xl">{c.full_name}{c.is_test && <span className="ml-2 align-middle text-xs rounded bg-beige px-1.5">TEST</span>}{!c.confirmed && <span className="ml-2 align-middle text-xs font-semibold rounded bg-char text-beige px-1.5">NEW</span>}</h1>
             <p className="text-muted">{describe(c)}</p>
             <p className="text-sm mt-1">{c.email}{c.phone ? ` · ${c.phone}` : ""}</p>
           </div>
@@ -43,6 +43,12 @@ export default async function Profile({ params }: { params: Promise<{ id: string
             {stale && <div className="text-xs">Out of date: a blank calendar may not be reliable. Check before casting.</div>}
           </div>
         </div>
+
+        {!c.confirmed && (
+          <div className="rounded-xl bg-char text-beige p-4 text-sm">
+            <b>New sign-up.</b> {c.full_name} signed themselves up with the join code. If they&apos;re a genuine Flair performer, tick <b>Confirmed</b> below and save. If not, untick <b>Active</b> to switch off their access.
+          </div>
+        )}
 
         <section className="rounded-xl bg-white border border-line p-4">
           <h2 className="text-xs uppercase tracking-wide text-muted mb-3">Regular week</h2>
@@ -82,6 +88,7 @@ export default async function Profile({ params }: { params: Promise<{ id: string
             </div>
           </fieldset>
           <label className="text-xs text-muted">Location<select name="location" defaultValue={c.location ?? ""} className="mt-1 block rounded-lg border border-line px-2 py-1.5 text-sm text-ink"><option value="">Not set</option>{LOCATIONS.map((l) => <option key={l}>{l}</option>)}</select></label>
+          <label className="flex items-center gap-2 text-sm"><input type="checkbox" name="confirmed" defaultChecked={c.confirmed} />Confirmed</label>
           <label className="flex items-center gap-2 text-sm"><input type="checkbox" name="active" defaultChecked={c.active} />Active</label>
           <button className="rounded-lg bg-char text-beige px-4 py-1.5 text-sm font-semibold">Save</button>
         </form>

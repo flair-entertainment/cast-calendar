@@ -8,7 +8,8 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
         <div className="font-serif text-2xl tracking-[0.2em] text-center">FLAIR</div>
         <h1 className="text-center text-muted mb-6">Cast Calendar</h1>
         <LoginForm error={error} />
-        <p className="mt-6 text-xs text-muted text-center">You'll stay logged in on this device, so you won't need to do this every time.</p>
+        <p className="mt-5 text-sm text-center">New Flair performer? <a href="/join" className="underline font-medium">Sign up here</a></p>
+        <p className="mt-4 text-xs text-muted text-center">You'll stay logged in on this device, so you won't need to do this every time.</p>
       </div>
     </main>
   );
