@@ -1,0 +1,23 @@
+@import "tailwindcss";
+
+/* Flair brand: very dark grey, white, very pale beige, black. */
+@theme {
+  --color-ink: #000000;
+  --color-char: #1c1c1c;
+  --color-char-2: #2a2a2a;
+  --color-sand: #f4efe7;
+  --color-beige: #ede4d6;
+  --color-line: #e4ddd1;
+  --color-muted: #6b6b6b;
+  --font-serif: "Playfair Display", Georgia, serif;
+}
+
+html, body { background: var(--color-sand); color: var(--color-ink); }
+
+/* Availability colours (kept distinct so they read at a glance). */
+.st-confirmed { background: #2f8f5b; color: #fff; }
+.st-free { background: #d7ecdf; color: #1d5c3a; }
+.st-part { background: #f5dfa6; color: #6b4a07; }
+.st-maybe { background: #e0a03a; color: #fff; }
+.st-out { background: #c2463e; color: #fff; }
+.st-none { background: #fff; color: #000; }

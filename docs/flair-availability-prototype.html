@@ -1,0 +1,579 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Flair Availability</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --navy:#1c1c1c; --navy-2:#2a2a2a; --navy-3:#363636; --gold:#ede4d6; --gold-soft:#f4efe7;
+  --bg:#f4efe7; --panel:#ffffff; --ink:#000000; --muted:#6b6b6b; --line:#e4ddd1;
+  --free:#2f8f5b; --free-bg:#dff1e6; --part:#b77a10; --part-bg:#fbefd6;
+  --out:#b5413a; --out-bg:#f6dedb; --book:#3b5bab; --book-bg:#dfe6f7;
+}
+*{box-sizing:border-box}
+body{margin:0;font-family:Inter,system-ui,-apple-system,sans-serif;background:var(--bg);color:var(--ink);font-size:14px}
+button{font:inherit;cursor:pointer}
+.proto{background:#000;color:var(--gold);text-align:center;font-size:12px;font-weight:600;padding:4px 8px}
+.app{display:grid;grid-template-columns:270px minmax(0,1fr) 300px;min-height:calc(100vh - 24px)}
+
+/* Sidebar */
+.side{background:var(--navy);color:#f2f2f2;padding:18px 14px;display:flex;flex-direction:column;gap:10px;height:calc(100vh - 24px);position:sticky;top:0;overflow:auto}
+.brand span{font-family:'Playfair Display',Georgia,serif;color:var(--gold);font-size:26px;letter-spacing:.14em;display:block}
+.brand small{color:#b5b0a8;font-size:12px}
+.search{width:100%;padding:9px 10px;border-radius:8px;border:1px solid #444;background:var(--navy-2);color:#fff;font:inherit}
+.search::placeholder{color:#9a958d}
+.sel-actions{display:flex;gap:6px;align-items:center}
+.sel-actions button{background:none;border:1px solid #4a4a4a;color:#e0e0e0;border-radius:6px;padding:4px 8px;font-size:12px}
+#selCount{margin-left:auto;color:var(--gold);font-size:12px;font-weight:600}
+.plist{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:2px;flex:1}
+.perf{display:flex;align-items:center;gap:8px;padding:6px;border-radius:8px}
+.perf:hover{background:var(--navy-2)}
+.perf.on{background:var(--navy-3);box-shadow:inset 3px 0 0 var(--gold)}
+.perf input{accent-color:var(--gold);width:16px;height:16px;flex:none;margin:0}
+.av{width:28px;height:28px;border-radius:50%;display:grid;place-items:center;font-size:11px;font-weight:600;color:#fff;flex:none}
+.pname{background:none;border:0;color:#fff;text-align:left;padding:0;flex:1;min-width:0}
+.pname:hover{color:var(--gold)}
+.pname small{display:block;color:#a8a39b;font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pname.dark{color:var(--navy);font-weight:500}
+.badge{font-size:11px;background:#3d3d3d;color:#f4efe7;padding:2px 7px;border-radius:10px;flex:none}
+.stale{width:8px;height:8px;border-radius:50%;background:#e0a03a;flex:none}
+.empty{color:#9a958d;font-size:13px;padding:8px}
+.ghost-gold{border:1px solid var(--gold);color:var(--gold);background:none;border-radius:8px;padding:9px}
+.ghost-gold:hover{background:rgba(237,228,214,.1)}
+
+/* Main */
+.main{padding:20px 22px;min-width:0}
+h1{font-family:'Playfair Display',Georgia,serif;font-size:28px;margin:0;color:var(--navy)}
+.muted{color:var(--muted);margin:2px 0 0}
+.row1{display:flex;justify-content:space-between;align-items:flex-end;gap:12px;flex-wrap:wrap}
+.tabs{display:flex;background:#e9e2d6;border-radius:10px;padding:3px}
+.tabs button{border:0;background:none;padding:7px 12px;border-radius:8px;color:var(--muted);font-weight:500}
+.tabs button.on{background:var(--panel);color:var(--navy);box-shadow:0 1px 2px rgba(0,0,0,.08)}
+.controls{display:flex;flex-wrap:wrap;gap:16px;margin:16px 0 10px}
+.ctl label{display:block;font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin-bottom:4px}
+.ctl select,.ctl input{font:inherit;padding:6px 8px;border:1px solid var(--line);border-radius:8px;background:var(--panel);color:var(--ink)}
+.mnav{display:flex;align-items:center;gap:6px}
+.mnav button{border:1px solid var(--line);background:var(--panel);border-radius:8px;width:32px;height:32px}
+#mlabel{min-width:120px;text-align:center;font-weight:600}
+.rng,.cust{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.cust{margin-top:6px}
+.cust[hidden]{display:none}
+.link{background:none;border:0;color:var(--ink);text-decoration:underline;padding:0;font-size:13px}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px}
+.chip{border:1px solid var(--line);background:var(--panel);border-radius:20px;padding:5px 11px;font-size:12px;color:var(--ink)}
+.chip.on{background:var(--navy);color:var(--gold);border-color:var(--navy)}
+.chips .lbl{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);align-self:center;min-width:64px}
+.summary{background:var(--panel);border:1px solid var(--line);border-left:4px solid var(--gold);border-radius:10px;padding:12px 14px;margin-bottom:12px;line-height:1.5}
+.dchips{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.dchip{border:0;background:var(--free-bg);color:var(--free);border-radius:16px;padding:4px 10px;font-size:12px;font-weight:600}
+.dchip.p{background:var(--part-bg);color:var(--part)}
+.dchip.n{background:#eef0f4;color:var(--muted)}
+
+/* Calendar */
+.dow{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin-bottom:6px;padding:0 4px}
+.grid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:6px}
+.cell{background:var(--panel);border:1px solid var(--line);border-radius:10px;min-height:98px;padding:7px;text-align:left;display:flex;flex-direction:column;gap:4px;color:var(--ink);min-width:0}
+.cell:hover{border-color:var(--navy)}
+.cell.blank{visibility:hidden}
+.cell.past{opacity:.45}
+.cell.inr{outline:2px solid var(--gold);outline-offset:-2px}
+.cell.sel{box-shadow:0 0 0 3px var(--navy)}
+.cell.today .dn{background:#000;color:#fff;border-radius:6px;padding:0 5px}
+.dn{font-weight:600;font-size:13px}
+.l-all{background:var(--free-bg);border-color:#bfe2cc}
+.l-most{background:#eef6e6;border-color:#d6e8c8}
+.l-some{background:var(--part-bg);border-color:#f0d9a8}
+.l-none{background:var(--out-bg);border-color:#ecc3be}
+.cnt{font-size:12px;color:var(--muted)}
+.cnt b{font-size:16px;color:var(--ink)}
+.bar{display:flex;height:5px;border-radius:3px;overflow:hidden;background:#eee}
+.bar i{display:block;height:100%}
+.bar .f{background:var(--free)}.bar .p{background:var(--part)}.bar .o{background:var(--out)}.bar .b{background:var(--book)}
+.outs{display:flex;flex-wrap:wrap;gap:2px}
+.mini{font-size:9px;font-weight:600;color:#fff;border-radius:4px;padding:1px 3px}
+.one{font-size:11px;line-height:1.3;overflow:hidden;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical}
+.t-free{color:var(--free);font-weight:600}.t-part{color:var(--part)}.t-out{color:var(--out)}.t-book{color:var(--book)}
+.legend{display:flex;flex-wrap:wrap;gap:14px;font-size:12px;color:var(--muted);margin-top:14px}
+.legend i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:5px;vertical-align:-1px}
+
+/* Roster */
+.rscroll{overflow-x:auto;background:var(--panel);border:1px solid var(--line);border-radius:10px}
+table{border-collapse:collapse;font-size:12px}
+th,td{border-bottom:1px solid var(--line);padding:0;text-align:center}
+.nm{position:sticky;left:0;background:var(--panel);text-align:left;padding:6px 10px;white-space:nowrap;z-index:1;min-width:150px;border-right:1px solid var(--line)}
+thead th{padding:6px 2px;font-weight:500;color:var(--muted);min-width:30px;line-height:1.2}
+thead th.we{color:var(--navy);font-weight:600}
+td.c{width:30px;height:30px;cursor:pointer}
+td.c span{display:block;margin:3px;height:24px;border-radius:5px}
+.s-free{background:var(--free-bg)}.s-part{background:var(--part)}.s-out{background:var(--out)}.s-book{background:var(--book)}
+.s-part{opacity:.55}
+tr.tot td{font-weight:600;color:var(--navy);padding:6px 0}
+
+/* Detail */
+.detail{background:var(--panel);border-left:1px solid var(--line);padding:20px 18px;height:calc(100vh - 24px);position:sticky;top:0;overflow:auto}
+.detail h2{font-family:'Playfair Display',Georgia,serif;font-size:20px;margin:0 0 2px;color:var(--navy)}
+.grp{margin-top:16px}
+.grp h4{margin:0 0 6px;font-size:11px;text-transform:uppercase;letter-spacing:.06em;display:flex;gap:6px;align-items:center}
+.who{display:flex;gap:8px;align-items:flex-start;padding:6px 0;border-bottom:1px dashed var(--line)}
+.who .av{width:24px;height:24px;font-size:10px}
+.who .why{display:block;font-size:12px;color:var(--muted)}
+.who button{background:none;border:0;padding:0;text-align:left;color:var(--ink);font-weight:500}
+.tips{color:var(--muted);line-height:1.55;font-size:13px}
+.tips li{margin-bottom:6px}
+
+/* Modals */
+.modal{position:fixed;inset:0;background:rgba(0,0,0,.55);display:grid;place-items:center;padding:16px;z-index:10}
+.modal[hidden]{display:none}
+.mbox{background:var(--panel);border-radius:14px;max-width:540px;width:100%;max-height:90vh;overflow:auto;padding:22px;position:relative}
+.mbox h2{font-family:'Playfair Display',Georgia,serif;margin:0;color:var(--navy);font-size:24px}
+.mbox h3{font-size:12px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin:20px 0 8px}
+.x{position:absolute;top:12px;right:14px;border:0;background:none;font-size:22px;color:var(--muted)}
+.phead{display:flex;gap:12px;align-items:center}
+.phead .av{width:48px;height:48px;font-size:16px}
+.warn{background:#fdf1dc;color:#7a5410;border-radius:8px;padding:8px 10px;font-size:13px;margin-top:12px}
+.wr{display:grid;grid-template-columns:36px 1fr;gap:8px;align-items:center;font-size:12px;margin:4px 0}
+.track{position:relative;height:16px;background:var(--free-bg);border-radius:4px}
+.track i{position:absolute;top:0;bottom:0;background:var(--out);opacity:.8;border-radius:3px}
+.hours{display:flex;justify-content:space-between;font-size:10px;color:var(--muted);margin-left:44px}
+.plain{list-style:none;padding:0;margin:0}
+.plain li{padding:7px 0;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;gap:10px;align-items:center}
+.plain .sub{color:var(--muted);font-size:12px}
+.tag{font-size:11px;padding:2px 7px;border-radius:10px;white-space:nowrap}
+.tag.out{background:var(--out-bg);color:var(--out)}.tag.book{background:var(--book-bg);color:var(--book)}
+.btns{display:flex;gap:8px;flex-wrap:wrap;margin-top:18px}
+.btn{border:0;background:var(--navy);color:var(--gold);border-radius:8px;padding:9px 14px;font-weight:600}
+.btn.sec{background:#ede4d6;color:var(--navy)}
+.rm{border:0;background:none;color:var(--out);font-size:12px;text-decoration:underline}
+
+/* Performer phone preview */
+.phone{max-width:380px;margin:0 auto}
+.phone .asbar{background:var(--gold-soft);border-radius:8px;padding:8px 10px;font-size:12px;display:flex;gap:8px;align-items:center;margin-bottom:14px;flex-wrap:wrap}
+.phone .asbar select{font:inherit;padding:3px 6px;border-radius:6px;border:1px solid var(--line)}
+.pform{display:grid;gap:8px;background:#faf8f3;border:1px solid var(--line);border-radius:10px;padding:12px;margin-top:10px}
+.pform .two{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.pform label{font-size:11px;color:var(--muted);display:grid;gap:3px}
+.pform input,.pform select{font:inherit;padding:7px 8px;border:1px solid var(--line);border-radius:8px;background:#fff;width:100%}
+.days{display:flex;gap:4px;flex-wrap:wrap}
+.days label{display:inline-flex;align-items:center;gap:3px;background:#fff;border:1px solid var(--line);border-radius:6px;padding:4px 6px;font-size:12px;color:var(--ink)}
+.saved{font-size:12px;color:var(--free);margin-top:14px}
+
+@media (max-width:1100px){
+  .app{grid-template-columns:240px minmax(0,1fr)}
+  .detail{grid-column:1/-1;position:static;height:auto;border-left:0;border-top:1px solid var(--line)}
+}
+@media (max-width:720px){
+  .app{grid-template-columns:1fr}
+  .side{position:static;height:auto}
+  .plist{max-height:260px;overflow:auto}
+  .main{padding:16px}
+  .grid,.dow{gap:3px}
+  .cell{min-height:62px;padding:4px;border-radius:7px}
+  .outs,.one,.bar{display:none}
+  .cnt{font-size:10px}.cnt b{font-size:13px}
+}
+</style>
+</head>
+<body>
+<div class="proto">PROTOTYPE · dummy performers · changes reset when you refresh</div>
+<div class="app">
+  <aside class="side">
+    <div class="brand"><span>FLAIR</span><small>Performer availability · team view</small></div>
+    <input id="q" class="search" placeholder="Search performers" aria-label="Search performers">
+    <div class="sel-actions"><button id="selAll">Select all</button><button id="selNone">Clear</button><span id="selCount"></span></div>
+    <ul id="plist" class="plist"></ul>
+    <button id="perfPrev" class="ghost-gold">Preview the performer's screen</button>
+  </aside>
+
+  <main class="main">
+    <header>
+      <div class="row1">
+        <div><h1>Availability</h1><p id="viewing" class="muted"></p></div>
+        <div class="tabs" id="tabs"><button data-view="cal" class="on">Overlap calendar</button><button data-view="roster">Roster</button></div>
+      </div>
+      <div class="controls">
+        <div class="ctl"><label>Month</label><div class="mnav"><button id="prev" aria-label="Previous month">‹</button><span id="mlabel"></span><button id="next" aria-label="Next month">›</button></div></div>
+        <div class="ctl"><label>Time needed</label>
+          <select id="win">
+            <option value="full">Full day (08:00 to 23:00)</option>
+            <option value="day">Daytime (09:00 to 17:00)</option>
+            <option value="eve">Evening (17:00 to 22:00)</option>
+            <option value="custom">Custom hours</option>
+          </select>
+          <div class="cust" id="custom" hidden><input type="time" id="cs" value="18:00"> to <input type="time" id="ce" value="21:00"></div>
+        </div>
+        <div class="ctl"><label>Casting window</label><div class="rng"><input type="date" id="from"> to <input type="date" id="to"><button id="clearR" class="link">Clear</button></div></div>
+      </div>
+      <div class="chips" id="locs"></div>
+      <div class="chips" id="roles"></div>
+    </header>
+
+    <section id="summary" class="summary" hidden></section>
+    <section id="calWrap">
+      <div class="dow"><span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span><span>Sun</span></div>
+      <div id="grid" class="grid"></div>
+    </section>
+    <section id="rosterWrap" hidden><div class="rscroll"><table id="roster"></table></div></section>
+
+    <div class="legend">
+      <span><i style="background:var(--free)"></i>Free for the time needed</span>
+      <span><i style="background:var(--part)"></i>Partly free (regular week clashes)</span>
+      <span><i style="background:var(--out)"></i>Unavailable</span>
+      <span><i style="background:var(--book)"></i>Booked with Flair</span>
+      <span><i style="background:#e0a03a;border-radius:50%"></i>Not updated in 60+ days</span>
+    </div>
+  </main>
+
+  <aside class="detail" id="detail"></aside>
+</div>
+
+<div id="modal" class="modal" hidden><div class="mbox" id="mbox" role="dialog" aria-modal="true"></div></div>
+
+<script>
+/* ---------- Dummy data ---------- */
+const TODAY = new Date(2026, 9, 27);
+const TYPES = {holiday:'Holiday', work:'Other work', personal:'Personal'};
+const ROLES = ['Dancer','Specialist','Actor','Singer'];
+const WD = [1,2,3,4,5];
+const P = [
+ {id:1,name:'Ava Morgan',roles:['Dancer','Actor'],base:'London',updated:'2026-10-20',weekly:[],
+  blocks:[{s:'2026-11-14',e:'2026-11-21',t:'holiday',n:'Lisbon'},{s:'2026-12-05',e:'2026-12-06',t:'flair',n:'Winter Gala, Mayfair'}]},
+ {id:2,name:'Ben Okafor',roles:['Specialist'],base:'Brighton',updated:'2026-10-02',
+  weekly:[{days:[1,2],s:'10:00',e:'16:00',n:'Teaching circus classes'}],
+  blocks:[{s:'2026-11-28',e:'2026-11-30',t:'work',n:'Panto tech week'},{s:'2026-12-10',e:'2026-12-31',t:'work',n:'Panto run, Richmond'}]},
+ {id:3,name:'Chloe Hart',roles:['Singer'],base:'London',updated:'2026-09-15',
+  weekly:[{days:WD,s:'09:00',e:'17:30',n:'Office job'}],
+  blocks:[{s:'2026-11-07',e:'2026-11-07',t:'personal',n:'Wedding'},{s:'2026-12-24',e:'2026-12-27',t:'holiday',n:'Family'}]},
+ {id:4,name:'Dev Patel',roles:['Specialist'],base:'Manchester',updated:'2026-06-03',
+  weekly:[{days:[0],s:'00:00',e:'24:00',n:'Never Sundays'}],blocks:[]},
+ {id:5,name:'Ellie Rowe',roles:['Dancer','Specialist'],base:'London',updated:'2026-10-25',
+  weekly:[{days:WD,s:'00:00',e:'17:00',n:'Only free 17:00 to 21:00 on weekdays'},{days:WD,s:'21:00',e:'24:00',n:'Only free 17:00 to 21:00 on weekdays'}],
+  blocks:[{s:'2026-12-28',e:'2027-01-04',t:'holiday',n:'Ski trip'}]},
+ {id:6,name:'Finn Gallagher',roles:['Actor'],base:'Jersey',updated:'2026-10-11',
+  weekly:[{days:[6],s:'12:00',e:'24:00',n:'Bar shifts'}],
+  blocks:[{s:'2026-12-12',e:'2026-12-13',t:'flair',n:'Christmas market elves'},{s:'2026-12-19',e:'2026-12-20',t:'flair',n:'Christmas market elves'}]},
+ {id:7,name:'Grace Liu',roles:['Specialist','Dancer'],base:'London',updated:'2026-10-26',
+  weekly:[{days:[3],s:'18:00',e:'22:00',n:'Training'}],
+  blocks:[{s:'2026-11-03',e:'2026-11-09',t:'holiday',n:'Bali'},{s:'2026-12-15',e:'2026-12-16',t:'work',n:'Corporate show'}]},
+ {id:8,name:'Harry Noble',roles:['Specialist','Actor'],base:'Bristol',updated:'2026-07-29',weekly:[],
+  blocks:[{s:'2026-11-21',e:'2026-11-22',t:'work',n:'Festival'}]},
+ {id:9,name:'Isla Brennan',roles:['Singer'],base:'London',updated:'2026-10-18',
+  weekly:[{days:[2,4],s:'09:00',e:'15:00',n:'Uni lectures'}],
+  blocks:[{s:'2026-11-25',e:'2026-11-25',t:'personal',n:'Exam'},{s:'2026-12-21',e:'2026-12-23',t:'holiday',n:'Home for Christmas'}]},
+ {id:10,name:'Jonah Reid',roles:['Dancer','Actor'],base:'London',updated:'2026-10-22',
+  weekly:[{days:WD,s:'08:00',e:'16:00',n:'Teaching assistant'}],
+  blocks:[{s:'2026-11-28',e:'2026-11-28',t:'flair',n:'Lights switch-on'}]},
+ {id:11,name:'Kara Mensah',roles:['Actor','Singer'],base:'London',updated:'2026-09-30',weekly:[],
+  blocks:[{s:'2026-11-30',e:'2026-12-08',t:'holiday',n:'Ghana'}]},
+ {id:12,name:'Luca Romano',roles:['Specialist'],base:'Barcelona',updated:'2026-10-14',
+  weekly:[{days:[5,6],s:'19:00',e:'24:00',n:'Restaurant residency'}],blocks:[]},
+ {id:13,name:'Maya Lindqvist',roles:['Specialist'],base:'Lisbon',updated:'2026-10-27',weekly:[],
+  blocks:[{s:'2026-11-10',e:'2026-11-13',t:'work',n:'Music video'},{s:'2026-12-18',e:'2026-12-18',t:'flair',n:'Office party, Canary Wharf'},{s:'2026-12-24',e:'2026-12-26',t:'holiday',n:''}]},
+ {id:14,name:'Nia Campbell',roles:['Dancer','Singer'],base:'London',updated:'2026-08-12',
+  weekly:[{days:WD,s:'09:00',e:'17:00',n:'Day job'}],
+  blocks:[{s:'2026-12-01',e:'2026-12-03',t:'holiday',n:''}]},
+ {id:15,name:'Owen Hughes',roles:['Specialist','Actor'],base:'Cardiff',updated:'2026-10-19',weekly:[],
+  blocks:[{s:'2026-11-16',e:'2026-11-16',t:'personal',n:''},{s:'2026-12-01',e:'2026-12-24',t:'work',n:'Grotto season'}]},
+ {id:16,name:'Priya Shah',roles:['Dancer','Specialist'],base:'London',updated:'2026-10-24',
+  weekly:[{days:[4],s:'17:00',e:'21:00',n:'Teaching'}],
+  blocks:[{s:'2026-11-19',e:'2026-11-23',t:'holiday',n:'Amsterdam'}]}
+];
+
+/* ---------- Helpers ---------- */
+const $ = id => document.getElementById(id);
+const pad = n => String(n).padStart(2,'0');
+const ymd = d => `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+const parse = s => new Date(+s.slice(0,4), +s.slice(5,7)-1, +s.slice(8,10));
+const addD = (d,n) => new Date(d.getFullYear(), d.getMonth(), d.getDate()+n);
+const fmtD = (d,o={weekday:'short',day:'numeric',month:'short'}) => d.toLocaleDateString('en-GB',o);
+const toMin = t => { const [h,m] = t.split(':').map(Number); return h*60+m; };
+const fmtM = m => pad(Math.floor(m/60))+':'+pad(m%60);
+const esc = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const DOW = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+const COLORS = ['#1c1c1c','#3a3a3a','#555555','#000000','#6b6560','#2e2a26','#4a4540','#7a746c'];
+const col = p => COLORS[p.id % COLORS.length];
+const ini = n => n.split(' ').map(x => x[0]).join('');
+const byId = id => P.find(p => p.id == id);
+const isStale = p => (TODAY - parse(p.updated)) / 864e5 > 60;
+const daysLabel = ds => {
+  const k = [...ds].sort().join();
+  if (k === '1,2,3,4,5') return 'Weekdays';
+  if (k === '0,1,2,3,4,5,6') return 'Every day';
+  if (k === '0,6') return 'Weekends';
+  return [1,2,3,4,5,6,0].filter(d => ds.includes(d)).map(d => DOW[d]).join(', ');
+};
+
+/* ---------- State ---------- */
+const state = { sel:new Set(), roles:new Set(), locs:new Set(), q:'', month:new Date(2026,10,1), view:'cal', from:'', to:'', win:'full', day:null };
+const WINS = { full:['08:00','23:00'], day:['09:00','17:00'], eve:['17:00','22:00'] };
+const WIN_LABEL = { full:'full day', day:'daytime', eve:'evening' };
+function getWin(){
+  let [s,e] = state.win === 'custom' ? [$('cs').value || '18:00', $('ce').value || '21:00'] : WINS[state.win];
+  let a = toMin(s), b = toMin(e);
+  if (b <= a) [a,b] = [b,a];
+  if (b === a) b = a + 60;
+  return { s:a, e:b };
+}
+const winText = () => { const w = getWin(); return state.win === 'custom' ? `${fmtM(w.s)} to ${fmtM(w.e)}` : `${WIN_LABEL[state.win]} (${fmtM(w.s)} to ${fmtM(w.e)})`; };
+const roleOk = p => (!state.roles.size || p.roles.some(r => state.roles.has(r))) && (!state.locs.size || state.locs.has(region(p)));
+const LOCS = ['UK','Jersey','Europe'];
+const region = p => p.base === 'Jersey' ? 'Jersey' : ['Barcelona','Lisbon'].includes(p.base) ? 'Europe' : 'UK';
+const pool = () => state.sel.size ? P.filter(p => state.sel.has(p.id)) : P.filter(roleOk);
+function rangeDays(){
+  if (!state.from || !state.to) return null;
+  let a = parse(state.from), b = parse(state.to);
+  if (a > b) [a,b] = [b,a];
+  const out = [];
+  for (let d = a; d <= b && out.length < 120; d = addD(d,1)) out.push(d);
+  return out;
+}
+
+/* ---------- Core rule: is this person free on this date for the time needed? ---------- */
+function status(p, d){
+  const ds = ymd(d);
+  for (const b of p.blocks) if (b.s <= ds && ds <= b.e)
+    return b.t === 'flair' ? {st:'book', why:'Booked with Flair' + (b.n ? ': '+b.n : '')}
+                           : {st:'out', why:TYPES[b.t] + (b.n ? ': '+b.n : '')};
+  const w = getWin(); let free = [[w.s, w.e]]; const labs = new Set(); const wd = d.getDay();
+  for (const r of p.weekly){
+    if (!r.days.includes(wd)) continue;
+    const rs = toMin(r.s), re = toMin(r.e), nx = []; let hit = false;
+    for (const [a,b] of free){
+      if (re <= a || rs >= b){ nx.push([a,b]); continue; }
+      hit = true;
+      if (rs > a) nx.push([a,rs]);
+      if (re < b) nx.push([re,b]);
+    }
+    if (hit) labs.add(r.n);
+    free = nx;
+  }
+  if (!labs.size) return {st:'free', why:''};
+  const l = [...labs].join(', ');
+  if (!free.length) return {st:'out', why:'Regular week: '+l};
+  return {st:'part', why:'Only free ' + free.map(([a,b]) => fmtM(a)+' to '+fmtM(b)).join(', ') + ' ('+l+')'};
+}
+
+/* ---------- Rendering ---------- */
+function renderSide(){
+  const rd = rangeDays();
+  const list = P.filter(p => p.name.toLowerCase().includes(state.q) && roleOk(p));
+  $('plist').innerHTML = list.map(p => {
+    const on = state.sel.has(p.id);
+    const badge = rd ? `<span class="badge" title="Days fully free in the casting window">${rd.filter(d => status(p,d).st === 'free').length}/${rd.length}</span>` : '';
+    const st = isStale(p) ? '<span class="stale" title="Not updated in 60+ days"></span>' : '';
+    return `<li class="perf${on ? ' on' : ''}" data-id="${p.id}">
+      <input type="checkbox" ${on ? 'checked' : ''} aria-label="Select ${esc(p.name)}">
+      <span class="av" style="background:${col(p)}">${ini(p.name)}</span>
+      <button class="pname" data-prof="${p.id}">${esc(p.name)}<small>${p.roles.join(' · ')} · ${esc(p.base)}</small></button>${st}${badge}</li>`;
+  }).join('') || '<li class="empty">No performers match</li>';
+  $('selCount').textContent = state.sel.size ? state.sel.size + ' selected' : '';
+}
+
+function renderRoles(){
+  $('roles').innerHTML = '<span class="lbl">Role</span>' + ROLES.map(r => `<button class="chip${state.roles.has(r) ? ' on' : ''}" data-role="${r}">${r}</button>`).join('');
+  $('locs').innerHTML = '<span class="lbl">Location</span>' + LOCS.map(l => `<button class="chip${state.locs.has(l) ? ' on' : ''}" data-loc="${l}">${l}</button>`).join('');
+}
+
+function renderHeader(){
+  const pl = pool();
+  $('mlabel').textContent = fmtD(state.month, {month:'long', year:'numeric'});
+  const who = state.sel.size ? `${pl.length} selected performer${pl.length === 1 ? '' : 's'}` : `all ${pl.length}${state.roles.size || state.locs.size ? ' matching' : ''} performers`;
+  $('viewing').textContent = `Showing ${who} · ${winText()}`;
+  $('custom').hidden = state.win !== 'custom';
+  document.querySelectorAll('#tabs button').forEach(b => b.classList.toggle('on', b.dataset.view === state.view));
+  $('calWrap').hidden = state.view !== 'cal';
+  $('rosterWrap').hidden = state.view !== 'roster';
+}
+
+function renderSummary(){
+  const rd = rangeDays(), pl = pool(), el = $('summary');
+  if (!rd || !pl.length){ el.hidden = true; return; }
+  const N = pl.length;
+  const rows = rd.map(d => { const ss = pl.map(p => status(p,d).st); return {d, free:ss.filter(s => s === 'free').length, ok:ss.every(s => s === 'free' || s === 'part')}; });
+  const all = rows.filter(r => r.free === N);
+  const partly = rows.filter(r => r.ok && r.free < N);
+  const chip = (r, cls) => `<button class="dchip ${cls}" data-d="${ymd(r.d)}">${fmtD(r.d)}${cls === 'n' ? ` · ${r.free}/${N}` : ''}</button>`;
+  let h = `<b>${fmtD(rd[0])} to ${fmtD(rd[rd.length-1])}</b>: `;
+  if (all.length) h += `${all.length} date${all.length === 1 ? '' : 's'} where all ${N} are free for the ${state.win === 'custom' ? 'hours' : WIN_LABEL[state.win]} needed.<div class="dchips">${all.map(r => chip(r,'')).join('')}</div>`;
+  else {
+    const best = [...rows].sort((a,b) => b.free - a.free).slice(0,4);
+    h += `no date where all ${N} are free. Closest options:<div class="dchips">${best.map(r => chip(r,'n')).join('')}</div>`;
+  }
+  if (partly.length) h += `<div style="margin-top:8px">Everyone is at least partly free on ${partly.length} more date${partly.length === 1 ? '' : 's'}:</div><div class="dchips">${partly.map(r => chip(r,'p')).join('')}</div>`;
+  el.innerHTML = h; el.hidden = false;
+}
+
+function renderCal(){
+  const m = state.month, y = m.getFullYear(), mo = m.getMonth();
+  const n = new Date(y, mo+1, 0).getDate(), off = (new Date(y,mo,1).getDay() + 6) % 7;
+  const pl = pool(), N = pl.length, rd = rangeDays();
+  const rset = new Set(rd ? rd.map(ymd) : []);
+  let h = '<div class="cell blank"></div>'.repeat(off);
+  for (let day = 1; day <= n; day++){
+    const d = new Date(y, mo, day), ds = ymd(d);
+    const ss = pl.map(p => ({p, ...status(p,d)}));
+    const c = {free:0, part:0, out:0, book:0}; ss.forEach(s => c[s.st]++);
+    const lvl = !N ? '' : c.free === N ? 'l-all' : c.free/N >= .5 ? 'l-most' : (c.free + c.part) > 0 ? 'l-some' : 'l-none';
+    const cls = ['cell', lvl, d < TODAY ? 'past' : '', ds === ymd(TODAY) ? 'today' : '', rset.has(ds) ? 'inr' : '', state.day === ds ? 'sel' : ''].join(' ');
+    const seg = (k,v) => v ? `<i class="${k}" style="width:${v/N*100}%"></i>` : '';
+    let body = '';
+    if (N === 1){
+      const s = ss[0];
+      body = `<div class="one t-${s.st}">${s.st === 'free' ? 'Free' : esc(s.why)}</div>`;
+    } else if (N){
+      const nf = ss.filter(s => s.st === 'out' || s.st === 'book');
+      body = `<div class="cnt"><b>${c.free}</b>/${N} free${c.part ? ` · ${c.part} part` : ''}</div>
+        <div class="bar">${seg('f',c.free)}${seg('p',c.part)}${seg('o',c.out)}${seg('b',c.book)}</div>
+        <div class="outs">${nf.slice(0,5).map(s => `<span class="mini" style="background:${s.st === 'book' ? 'var(--book)' : 'var(--out)'}" title="${esc(s.p.name)}: ${esc(s.why)}">${ini(s.p.name)}</span>`).join('')}${nf.length > 5 ? `<span class="mini" style="background:#888">+${nf.length-5}</span>` : ''}</div>`;
+    }
+    h += `<button class="${cls}" data-d="${ds}" aria-label="${fmtD(d)}"><span class="dn">${day}</span>${body}</button>`;
+  }
+  $('grid').innerHTML = h;
+}
+
+function renderRoster(){
+  const m = state.month, pl = pool();
+  const days = rangeDays() || Array.from({length:new Date(m.getFullYear(), m.getMonth()+1, 0).getDate()}, (_,i) => new Date(m.getFullYear(), m.getMonth(), i+1));
+  let h = '<thead><tr><th class="nm">Performer</th>' + days.map(d => `<th class="${d.getDay() % 6 === 0 ? 'we' : ''}">${DOW[d.getDay()][0]}<br>${d.getDate()}</th>`).join('') + '</tr></thead><tbody>';
+  pl.forEach(p => {
+    h += `<tr><td class="nm"><button class="pname dark" data-prof="${p.id}">${esc(p.name)}</button></td>` +
+      days.map(d => { const s = status(p,d); return `<td class="c" data-d="${ymd(d)}" title="${esc(p.name)} · ${fmtD(d)}: ${s.st === 'free' ? 'Free' : esc(s.why)}"><span class="s-${s.st}"></span></td>`; }).join('') + '</tr>';
+  });
+  h += '<tr class="tot"><td class="nm">Free</td>' + days.map(d => `<td>${pl.filter(p => status(p,d).st === 'free').length}</td>`).join('') + '</tr></tbody>';
+  $('roster').innerHTML = h;
+}
+
+function renderDetail(){
+  const el = $('detail');
+  if (!state.day){
+    el.innerHTML = `<h2>How to use this</h2><ul class="tips">
+      <li><b>Tick performers</b> in the sidebar to merge their calendars. Nothing ticked shows the whole roster.</li>
+      <li><b>Time needed</b> matters for rehearsals: someone with a 9 to 5 job is free for an evening rehearsal but not a daytime one.</li>
+      <li>Set a <b>casting window</b> to get the best dates and a free-day count next to each name.</li>
+      <li><b>Click a day</b> to see who is free, partly free or out, and why.</li>
+      <li><b>Click a name</b> for their profile and regular week.</li>
+      <li>Performers never see this screen. Use "Preview the performer's screen" to see theirs.</li></ul>`;
+    return;
+  }
+  const d = parse(state.day), pl = pool();
+  const ss = pl.map(p => ({p, ...status(p,d)}));
+  const groups = [['free','Free',ss.filter(s => s.st === 'free'),'var(--free)'], ['part','Partly free',ss.filter(s => s.st === 'part'),'var(--part)'], ['out','Unavailable',ss.filter(s => s.st === 'out'),'var(--out)'], ['book','Booked with Flair',ss.filter(s => s.st === 'book'),'var(--book)']];
+  el.innerHTML = `<h2>${fmtD(d, {weekday:'long', day:'numeric', month:'long'})}</h2><p class="muted">${winText()}</p>` +
+    groups.filter(g => g[2].length).map(([k,label,list,c]) => `<div class="grp"><h4 style="color:${c}">${label} · ${list.length}</h4>` +
+      list.map(s => `<div class="who"><span class="av" style="background:${col(s.p)}">${ini(s.p.name)}</span><div><button data-prof="${s.p.id}">${esc(s.p.name)}</button>${s.why && k !== 'free' ? `<span class="why">${esc(s.why.replace('Booked with Flair: ',''))}</span>` : ''}</div></div>`).join('') + '</div>').join('');
+}
+
+function renderAll(){ renderSide(); renderRoles(); renderHeader(); renderSummary(); state.view === 'cal' ? renderCal() : renderRoster(); renderDetail(); }
+
+/* ---------- Profile modal (team view) ---------- */
+function weekViz(p){
+  return [1,2,3,4,5,6,0].map(wd => {
+    const segs = p.weekly.filter(r => r.days.includes(wd)).map(r => {
+      const a = Math.max(toMin(r.s), 360), b = Math.min(toMin(r.e), 1440);
+      return b > a ? `<i style="left:${(a-360)/1080*100}%;width:${(b-a)/1080*100}%" title="${esc(r.n)}: ${r.s} to ${r.e}"></i>` : '';
+    }).join('');
+    return `<div class="wr"><span>${DOW[wd]}</span><div class="track">${segs}</div></div>`;
+  }).join('') + '<div class="hours"><span>06:00</span><span>12:00</span><span>18:00</span><span>24:00</span></div>';
+}
+function openProfile(id){
+  const p = byId(id), on = state.sel.has(p.id);
+  const rules = []; const seen = new Set();
+  p.weekly.forEach(r => { if (!seen.has(r.n)){ seen.add(r.n); const all = p.weekly.filter(x => x.n === r.n); rules.push(`<li><span>${esc(r.n)}<br><span class="sub">${daysLabel(r.days)} · ${all.map(x => x.s+' to '+x.e).join(' and ')} unavailable</span></span></li>`); } });
+  const up = p.blocks.filter(b => b.e >= ymd(TODAY)).sort((a,b) => a.s.localeCompare(b.s));
+  const range = b => b.s === b.e ? fmtD(parse(b.s)) : `${fmtD(parse(b.s))} to ${fmtD(parse(b.e))}`;
+  const age = Math.round((TODAY - parse(p.updated)) / 864e5);
+  $('mbox').innerHTML = `<button class="x" data-close aria-label="Close">×</button>
+    <div class="phead"><span class="av" style="background:${col(p)}">${ini(p.name)}</span><div><h2>${esc(p.name)}</h2><p class="muted">${p.roles.join(' · ')} · ${esc(p.base)}</p></div></div>
+    ${isStale(p) ? `<div class="warn">Last updated ${age} days ago. A blank calendar here may just be out of date, so confirm before casting.</div>` : `<p class="muted" style="margin-top:10px">Last updated ${fmtD(parse(p.updated))}</p>`}
+    <h3>Regular week</h3>${weekViz(p)}
+    ${rules.length ? `<ul class="plain" style="margin-top:8px">${rules.join('')}</ul>` : '<p class="muted">No regular commitments. Free any day unless a date is blocked.</p>'}
+    <h3>Upcoming dates</h3>
+    ${up.length ? `<ul class="plain">${up.map(b => `<li><span>${range(b)}<br><span class="sub">${esc(b.n || '')}</span></span><span class="tag ${b.t === 'flair' ? 'book' : 'out'}">${b.t === 'flair' ? 'Flair booking' : TYPES[b.t]}</span></li>`).join('')}</ul>` : '<p class="muted">Nothing blocked.</p>'}
+    <div class="btns"><button class="btn" data-toggle="${p.id}">${on ? 'Remove from selection' : 'Add to selection'}</button><button class="btn sec" data-asperf="${p.id}">Preview their screen</button></div>`;
+  $('modal').hidden = false;
+}
+
+/* ---------- Performer screen preview ---------- */
+function openPerf(id){
+  const p = byId(id);
+  const mine = p.blocks.map((b,i) => ({...b, i})).filter(b => b.e >= ymd(TODAY)).sort((a,b) => a.s.localeCompare(b.s));
+  const range = b => b.s === b.e ? fmtD(parse(b.s)) : `${fmtD(parse(b.s))} to ${fmtD(parse(b.e))}`;
+  $('mbox').innerHTML = `<button class="x" data-close aria-label="Close">×</button><div class="phone">
+    <div class="asbar">Prototype: viewing as <select id="asWho">${P.map(x => `<option value="${x.id}" ${x.id === p.id ? 'selected' : ''}>${esc(x.name)}</option>`).join('')}</select></div>
+    <h2>Hi ${esc(p.name.split(' ')[0])}</h2>
+    <p class="muted">Add anything that stops you working for Flair. Only the Flair team can see this, never other performers.</p>
+    <h3>Dates I can't work</h3>
+    ${mine.length ? `<ul class="plain">${mine.map(b => `<li><span>${range(b)}<br><span class="sub">${b.t === 'flair' ? 'Booked with Flair' : TYPES[b.t]}${b.n ? ' · '+esc(b.n) : ''}</span></span>${b.t === 'flair' ? '<span class="tag book">Flair</span>' : `<button class="rm" data-rmb="${b.i}">Remove</button>`}</li>`).join('')}</ul>` : '<p class="muted">Nothing added yet.</p>'}
+    <form class="pform" id="addB">
+      <div class="two"><label>From<input type="date" name="s" required></label><label>To<input type="date" name="e"></label></div>
+      <div class="two"><label>Type<select name="t"><option value="holiday">Holiday</option><option value="work">Other work</option><option value="personal">Personal</option></select></label><label>Note (optional)<input name="n" placeholder="e.g. Lisbon"></label></div>
+      <button class="btn">Add dates</button>
+    </form>
+    <h3>My regular week</h3>
+    <p class="muted" style="margin-bottom:6px">Times you are never free, like a day job or classes.</p>
+    ${p.weekly.length ? `<ul class="plain">${p.weekly.map((r,i) => `<li><span>${esc(r.n)}<br><span class="sub">${daysLabel(r.days)} · ${r.s} to ${r.e}</span></span><button class="rm" data-rmw="${i}">Remove</button></li>`).join('')}</ul>` : ''}
+    <form class="pform" id="addW">
+      <div class="days">${[1,2,3,4,5,6,0].map(d => `<label><input type="checkbox" name="d" value="${d}">${DOW[d]}</label>`).join('')}</div>
+      <div class="two"><label>Unavailable from<input type="time" name="s" value="09:00" required></label><label>To<input type="time" name="e" value="17:00" required></label></div>
+      <label>What is it?<input name="n" placeholder="e.g. Day job" required></label>
+      <button class="btn">Add to my week</button>
+    </form>
+    <p class="saved">Last updated ${fmtD(parse(p.updated))}</p></div>`;
+  $('modal').hidden = false;
+  $('asWho').onchange = e => openPerf(+e.target.value);
+  $('addB').onsubmit = e => {
+    e.preventDefault(); const f = new FormData(e.target);
+    let s = f.get('s'), en = f.get('e') || s; if (en < s) [s,en] = [en,s];
+    p.blocks.push({s, e:en, t:f.get('t'), n:f.get('n').trim()}); touch(p);
+  };
+  $('addW').onsubmit = e => {
+    e.preventDefault(); const f = new FormData(e.target); const days = f.getAll('d').map(Number);
+    if (!days.length){ alert('Pick at least one day'); return; }
+    p.weekly.push({days, s:f.get('s'), e:f.get('e'), n:f.get('n').trim()}); touch(p);
+  };
+}
+function touch(p){ p.updated = ymd(TODAY); renderAll(); openPerf(p.id); }
+
+/* ---------- Events ---------- */
+$('q').oninput = e => { state.q = e.target.value.toLowerCase(); renderSide(); };
+$('selAll').onclick = () => { P.filter(p => p.name.toLowerCase().includes(state.q) && roleOk(p)).forEach(p => state.sel.add(p.id)); renderAll(); };
+$('selNone').onclick = () => { state.sel.clear(); renderAll(); };
+$('plist').addEventListener('change', e => {
+  const li = e.target.closest('.perf'); if (!li) return; const id = +li.dataset.id;
+  e.target.checked ? state.sel.add(id) : state.sel.delete(id); renderAll();
+});
+$('roles').onclick = e => { const r = e.target.dataset.role; if (!r) return; state.roles.has(r) ? state.roles.delete(r) : state.roles.add(r); renderAll(); };
+$('locs').onclick = e => { const l = e.target.dataset.loc; if (!l) return; state.locs.has(l) ? state.locs.delete(l) : state.locs.add(l); renderAll(); };
+$('tabs').onclick = e => { const v = e.target.dataset.view; if (v){ state.view = v; renderAll(); } };
+$('prev').onclick = () => { state.month = new Date(state.month.getFullYear(), state.month.getMonth()-1, 1); renderAll(); };
+$('next').onclick = () => { state.month = new Date(state.month.getFullYear(), state.month.getMonth()+1, 1); renderAll(); };
+$('win').onchange = e => { state.win = e.target.value; renderAll(); };
+$('cs').onchange = $('ce').onchange = () => renderAll();
+$('from').onchange = e => { state.from = e.target.value; if (state.from) state.month = new Date(parse(state.from).getFullYear(), parse(state.from).getMonth(), 1); renderAll(); };
+$('to').onchange = e => { state.to = e.target.value; renderAll(); };
+$('clearR').onclick = () => { state.from = state.to = ''; $('from').value = $('to').value = ''; renderAll(); };
+$('perfPrev').onclick = () => openPerf(state.sel.size ? [...state.sel][0] : P[0].id);
+
+document.addEventListener('click', e => {
+  const t = e.target;
+  const prof = t.closest('[data-prof]'); if (prof){ openProfile(prof.dataset.prof); return; }
+  const day = t.closest('[data-d]');
+  if (day && !t.closest('#mbox')){
+    state.day = day.dataset.d; const d = parse(state.day);
+    if (d.getMonth() !== state.month.getMonth() && state.view === 'cal') state.month = new Date(d.getFullYear(), d.getMonth(), 1);
+    renderAll(); return;
+  }
+  if (t.closest('[data-close]') || t === $('modal')){ $('modal').hidden = true; return; }
+  const tog = t.closest('[data-toggle]');
+  if (tog){ const id = +tog.dataset.toggle; state.sel.has(id) ? state.sel.delete(id) : state.sel.add(id); renderAll(); openProfile(id); return; }
+  const asp = t.closest('[data-asperf]'); if (asp){ openPerf(+asp.dataset.asperf); return; }
+  const rmb = t.closest('[data-rmb]'); if (rmb){ const p = byId(+$('asWho').value); p.blocks.splice(+rmb.dataset.rmb, 1); touch(p); return; }
+  const rmw = t.closest('[data-rmw]'); if (rmw){ const p = byId(+$('asWho').value); p.weekly.splice(+rmw.dataset.rmw, 1); touch(p); return; }
+});
+document.addEventListener('keydown', e => { if (e.key === 'Escape') $('modal').hidden = true; });
+
+renderAll();
+</script>
+</body>
+</html>
