@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import { AdminNav } from "@/components/AdminNav";
 import { requireAdmin } from "@/lib/auth";
 import { addDays, daysBetween, daysLabel, hhmm, isStale, monthDays, monthLabel, shiftMonth, shortDate, toMin, todayLondon, ukDate, weekday, DOW, MON_FIRST, type AvailabilityRow, type WeekRow } from "@/lib/availability";
-import { LOCATIONS, ROLES, STALE_DAYS, cap } from "@/lib/config";
+import { LOCATIONS, ROLES, STALE_DAYS, cap, describe } from "@/lib/config";
 import { getAvailability } from "@/lib/data";
 import { updateCastAdmin } from "../../actions";
 
@@ -35,7 +35,7 @@ export default async function Profile({ params }: { params: Promise<{ id: string
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
             <h1 className="font-serif text-3xl">{c.full_name}{c.is_test && <span className="ml-2 align-middle text-xs rounded bg-beige px-1.5">TEST</span>}</h1>
-            <p className="text-muted">{cap(c.role)} · {c.location}{c.skills.length ? ` · ${c.skills.join(", ")}` : ""}</p>
+            <p className="text-muted">{describe(c)}</p>
             <p className="text-sm mt-1">{c.email}{c.phone ? ` · ${c.phone}` : ""}</p>
           </div>
           <div className={`rounded-lg px-3 py-2 text-sm ${stale ? "bg-amber-100 text-amber-900" : "bg-white border border-line"}`}>
@@ -74,8 +74,14 @@ export default async function Profile({ params }: { params: Promise<{ id: string
 
         <form action={updateCastAdmin} className="rounded-xl bg-white border border-line p-4 flex flex-wrap items-end gap-3">
           <input type="hidden" name="id" value={c.id} />
-          <label className="text-xs text-muted">Role<select name="role" defaultValue={c.role} className="mt-1 block rounded-lg border border-line px-2 py-1.5 text-sm text-ink">{ROLES.map((r) => <option key={r} value={r}>{cap(r)}</option>)}</select></label>
-          <label className="text-xs text-muted">Location<select name="location" defaultValue={c.location} className="mt-1 block rounded-lg border border-line px-2 py-1.5 text-sm text-ink">{LOCATIONS.map((l) => <option key={l}>{l}</option>)}</select></label>
+          <fieldset className="text-xs text-muted">Roles
+            <div className="mt-1 flex flex-wrap gap-1.5">
+              {ROLES.map((r) => (
+                <label key={r} className="flex items-center gap-1 rounded-lg border border-line px-2 py-1 text-sm text-ink"><input type="checkbox" name="roles" value={r} defaultChecked={c.roles.includes(r)} />{cap(r)}</label>
+              ))}
+            </div>
+          </fieldset>
+          <label className="text-xs text-muted">Location<select name="location" defaultValue={c.location ?? ""} className="mt-1 block rounded-lg border border-line px-2 py-1.5 text-sm text-ink"><option value="">Not set</option>{LOCATIONS.map((l) => <option key={l}>{l}</option>)}</select></label>
           <label className="flex items-center gap-2 text-sm"><input type="checkbox" name="active" defaultChecked={c.active} />Active</label>
           <button className="rounded-lg bg-char text-beige px-4 py-1.5 text-sm font-semibold">Save</button>
         </form>

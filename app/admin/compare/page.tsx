@@ -3,7 +3,7 @@ import { AdminNav } from "@/components/AdminNav";
 import { TimeControls } from "@/components/TimeControls";
 import { requireAdmin } from "@/lib/auth";
 import { addDays, cellFor, getWindow, groupWeeks, indexRows, isAvailable, monthDays, monthLabel, range, shiftMonth, shortDate, todayLondon, ukDate, weekday, DOW } from "@/lib/availability";
-import { cap, type WindowKey } from "@/lib/config";
+import { describe, type WindowKey } from "@/lib/config";
 import { getAvailability, getCast, getWeeks } from "@/lib/data";
 import { qs } from "@/lib/qs";
 
@@ -103,7 +103,7 @@ export default async function Compare({ searchParams }: { searchParams: Promise<
                 <tr key={c.id}>
                   <td className="sticky left-0 z-10 bg-white p-2 border-b border-line">
                     <Link href={`/admin/cast/${c.id}`} className="font-medium text-sm hover:underline">{c.full_name}</Link>
-                    <div className="text-muted">{cap(c.role)} · {c.location}{c.skills.length ? ` · ${c.skills.join(", ")}` : ""}</div>
+                    <div className="text-muted">{describe(c)}</div>
                   </td>
                   {cells.map((cell, i) => (
                     <td key={i} className={`border-b border-l border-line p-0 ${highlight && counts[i] === N ? "outline outline-2 -outline-offset-2 outline-char" : ""}`}>

@@ -1,6 +1,6 @@
 import { CastNav } from "@/components/CastNav";
 import { requireCast } from "@/lib/auth";
-import { cap } from "@/lib/config";
+import { rolesLabel } from "@/lib/config";
 import { DetailsForm } from "./DetailsForm";
 
 export default async function MyDetails() {
@@ -12,8 +12,8 @@ export default async function MyDetails() {
         <h1 className="font-serif text-xl">My details</h1>
         <div className="rounded-xl bg-white border border-line p-4 text-sm space-y-1">
           <div><span className="text-muted">Email: </span>{member.email}</div>
-          <div><span className="text-muted">Role: </span>{cap(member.role)}</div>
-          <p className="text-xs text-muted pt-1">To change your email or role, contact the Flair team.</p>
+          <div><span className="text-muted">Roles: </span>{rolesLabel(member.roles)}</div>
+          <p className="text-xs text-muted pt-1">To change your email or roles, contact the Flair team.</p>
         </div>
         <DetailsForm member={{ full_name: member.full_name, phone: member.phone, location: member.location, skills: member.skills }} />
         <div className="rounded-xl bg-beige p-4 text-sm">

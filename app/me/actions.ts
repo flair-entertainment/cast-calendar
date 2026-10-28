@@ -63,7 +63,7 @@ export async function saveDetails(formData: FormData) {
     .filter(Boolean)
     .slice(0, 20);
   if (!full_name) return { ok: false, message: "Please enter your name." };
-  if (!(LOCATIONS as readonly string[]).includes(location)) return { ok: false, message: "Please pick a location." };
+  if (!(LOCATIONS as readonly string[]).includes(location)) return { ok: false, message: "Please pick where you're based." };
   const { error } = await supabase.from("cast_members").update({ full_name, phone, location, skills }).eq("id", member.id);
   if (error) return { ok: false, message: "Couldn't save. Please try again." };
   revalidatePath("/me/details");

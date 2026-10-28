@@ -10,12 +10,12 @@ with first_names as (
 ), skill_pool as (
   select array['aerial hoop','silks','stilts','fire','tap','ballet','hip hop','harmonies','improv','magic','juggling','walkabout'] as a
 )
-insert into public.cast_members (full_name, email, phone, role, location, skills, active, is_test, last_updated)
+insert into public.cast_members (full_name, email, phone, roles, location, skills, active, is_test, last_updated)
 select
   'TEST ' || f.a[1 + (n * 7) % 20] || ' ' || l.a[1 + (n * 13) % 20],
   'test' || lpad(n::text, 3, '0') || '@example.invalid',
   '07700 900' || lpad((n % 1000)::text, 3, '0'),
-  (array['dancer','specialist','actor','singer'])[1 + floor(random() * 4)::int],
+  array[(array['dancer','specialist','actor','singer','musician'])[1 + floor(random() * 5)::int]],
   (array['UK','UK','UK','Jersey','Europe'])[1 + floor(random() * 5)::int],
   array[s.a[1 + floor(random() * 12)::int], s.a[1 + floor(random() * 12)::int]],
   random() > 0.08,

@@ -41,8 +41,8 @@ export type CastMember = {
   full_name: string;
   email: string;
   phone: string | null;
-  role: string;
-  location: string;
+  roles: string[];
+  location: string | null;
   skills: string[];
   active: boolean;
   is_test: boolean;

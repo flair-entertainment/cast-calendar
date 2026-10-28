@@ -8,15 +8,15 @@ import { LOCATIONS, ROLES } from "@/lib/config";
 const roles = ROLES as readonly string[];
 const locations = LOCATIONS as readonly string[];
 
-// Manager edits role, location or active on someone's profile.
+// Manager edits roles, location or active on someone's profile.
 export async function updateCastAdmin(formData: FormData) {
   await requireAdmin(); // checked on the server before using the secret key
   const id = String(formData.get("id") ?? "");
-  const role = String(formData.get("role") ?? "");
-  const location = String(formData.get("location") ?? "");
+  const picked = formData.getAll("roles").map(String).filter((r) => roles.includes(r));
+  const loc = String(formData.get("location") ?? "");
+  const location = locations.includes(loc) ? loc : null;
   const active = formData.get("active") === "on";
-  if (!roles.includes(role) || !locations.includes(location)) return;
-  await createAdminClient().from("cast_members").update({ role, location, active }).eq("id", id);
+  await createAdminClient().from("cast_members").update({ roles: picked, location, active }).eq("id", id);
   revalidatePath(`/admin/cast/${id}`);
   revalidatePath("/admin/cast");
 }
@@ -64,14 +64,16 @@ export async function importCast(_: unknown, formData: FormData): Promise<Import
     const get = (n: string) => (col(n) >= 0 ? r[col(n)] ?? "" : "");
     const email = get("email").toLowerCase();
     const full_name = get("full_name");
-    const role = (get("role") || "dancer").toLowerCase();
-    const location = get("location") || "UK";
-    const locMatch = locations.find((l) => l.toLowerCase() === location.toLowerCase());
-    if (!full_name || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) { problems.push(`Row ${line}: missing name or email`); return []; }
-    if (!roles.includes(role)) { problems.push(`Row ${line}: role "${role}" isn't one of ${roles.join(", ")}`); return []; }
-    if (!locMatch) { problems.push(`Row ${line}: location "${location}" isn't one of ${locations.join(", ")}`); return []; }
+    // Roles: one or more, separated by semicolons (e.g. "dancer;actor"). "music" counts as musician.
+    const personRoles = [...new Set((get("roles") || get("role")).split(/[;|]/).map((r) => r.trim().toLowerCase()).filter(Boolean).map((r) => (r === "music" ? "musician" : r)))];
+    const location = get("location");
+    const locMatch = location ? locations.find((l) => l.toLowerCase() === location.toLowerCase()) : null;
+    if (!full_name || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) { problems.push(`Row ${line} (${full_name || "no name"}): missing or invalid email, so they can't log in`); return []; }
+    const badRole = personRoles.find((r) => !roles.includes(r));
+    if (badRole) { problems.push(`Row ${line}: role "${badRole}" isn't one of ${roles.join(", ")}`); return []; }
+    if (location && !locMatch) { problems.push(`Row ${line}: location "${location}" isn't one of ${locations.join(", ")}`); return []; }
     const skills = get("skills").split(/[;|]/).map((s) => s.trim().toLowerCase()).filter(Boolean);
-    return [{ email, full_name, role, location: locMatch, phone: get("phone") || null, skills }];
+    return [{ email, full_name, roles: personRoles, location: locMatch ?? null, phone: get("phone") || null, skills }];
   });
   if (!people.length) return { ok: false, message: "Nobody could be imported.", problems };
 
@@ -84,7 +86,7 @@ export async function importCast(_: unknown, formData: FormData): Promise<Import
     // Create their login first (ignored if it already exists); the database links it automatically.
     await admin.auth.admin.createUser({ email: p.email, email_confirm: true });
     if (known.has(p.email)) {
-      const { error } = await admin.from("cast_members").update({ full_name: p.full_name, role: p.role, location: p.location, phone: p.phone, skills: p.skills, active: true }).eq("id", known.get(p.email)!);
+      const { error } = await admin.from("cast_members").update({ full_name: p.full_name, roles: p.roles, location: p.location, phone: p.phone, skills: p.skills, active: true }).eq("id", known.get(p.email)!);
       if (error) problems.push(`${p.email}: ${error.message}`); else updated++;
     } else {
       const { error } = await admin.from("cast_members").insert(p);

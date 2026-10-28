@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { isStale, ukDate } from "@/lib/availability";
-import { LOCATIONS, ROLES, STALE_DAYS, cap } from "@/lib/config";
+import { LOCATIONS, ROLES, STALE_DAYS, cap, locationLabel, rolesLabel } from "@/lib/config";
 import type { CastMember } from "@/lib/data";
 
 const KEY = "cc-selected";
@@ -33,8 +33,8 @@ export function CastTable({ cast, today }: { cast: CastMember[]; today: string }
     return cast.filter(
       (c) =>
         (!n || c.full_name.toLowerCase().includes(n) || c.email.includes(n)) &&
-        (!role || c.role === role) &&
-        (!loc || c.location === loc) &&
+        (!role || c.roles.includes(role)) &&
+        (!loc || (loc === "none" ? !c.location : c.location === loc)) &&
         (!s || c.skills.some((k) => k.includes(s))) &&
         (active === "all" || (active === "active" ? c.active : !c.active)) &&
         (!staleOnly || isStale(c.last_updated, today, STALE_DAYS)),
@@ -56,6 +56,7 @@ export function CastTable({ cast, today }: { cast: CastMember[]; today: string }
         <select value={loc} onChange={(e) => setLoc(e.target.value)} className={ctl}>
           <option value="">All locations</option>
           {LOCATIONS.map((l) => <option key={l}>{l}</option>)}
+          <option value="none">Not set</option>
         </select>
         <input value={skill} onChange={(e) => setSkill(e.target.value)} placeholder="Skill" className={`${ctl} w-32`} />
         <select value={active} onChange={(e) => setActive(e.target.value)} className={ctl}>
@@ -98,8 +99,8 @@ export function CastTable({ cast, today }: { cast: CastMember[]; today: string }
                 <tr key={c.id} className={sel.has(c.id) ? "bg-sand" : ""}>
                   <td className="p-2"><input type="checkbox" checked={sel.has(c.id)} onChange={() => toggle(c.id)} aria-label={`Select ${c.full_name}`} /></td>
                   <td className="p-2"><Link href={`/admin/cast/${c.id}`} className="font-medium hover:underline">{c.full_name}</Link>{c.is_test && <span className="ml-2 text-[10px] rounded bg-beige px-1">TEST</span>}</td>
-                  <td className="p-2">{cap(c.role)}</td>
-                  <td className="p-2">{c.location}</td>
+                  <td className="p-2">{rolesLabel(c.roles)}</td>
+                  <td className="p-2">{locationLabel(c.location)}</td>
                   <td className="p-2 text-muted">{c.skills.join(", ")}</td>
                   <td className="p-2">{ukDate(c.last_updated.slice(0, 10))}{stale && <span className="ml-2 rounded bg-amber-100 text-amber-800 px-1.5 text-xs">Out of date</span>}</td>
                   <td className="p-2">{c.active ? "Active" : <span className="text-muted">Inactive</span>}{!c.user_id && <span className="ml-2 text-xs text-muted">(not logged in yet)</span>}</td>

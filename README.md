@@ -14,9 +14,9 @@ Flair's performer availability system.
 | Performers | My regular week | Repeating commitments, e.g. day job Mon-Fri 09:00-17:00. |
 | Performers | My details | Name, phone, location, skills. |
 | Managers | Overview | How many active cast are available each day. Click a day to see who. |
-| Managers | Cast list | Search and filter (role, location, skill, active, out of date). Tick people, then "Compare selected". |
+| Managers | Cast list | Search and filter (role, location, skill, active, out of date). People can have more than one role. Tick people, then "Compare selected". |
 | Managers | Compare | One row per person, one column per day (2 weeks or a month). Count of who's available on top. Toggle to highlight days everyone is free. |
-| Managers | Cast profile | One person's details, regular week, upcoming dates and when they last updated. Managers can change role, location and active here. |
+| Managers | Cast profile | One person's details, regular week, upcoming dates and when they last updated. Managers can change roles, location and active here. |
 | Managers | Add cast | Upload a spreadsheet (CSV) to add or update cast in one go. They can log in straight away. |
 
 ## Accounts it uses
@@ -32,7 +32,7 @@ Flair's performer availability system.
 
 ### 1. Create the database
 1. In Supabase, open your project, then **SQL Editor** in the left menu, then **New query**.
-2. Open `supabase/migrations/20261028000000_init.sql` from this repository, copy all of it, paste it in, click **Run**. You should see "Success".
+2. Open `supabase/migrations/20261028000000_init.sql` from this repository, copy all of it, paste it in, click **Run**. You should see "Success". Then do the same, in date order, with every other file in `supabase/migrations/` (currently `20261028120000_multiple_roles.sql`).
 3. Optional, for testing: do the same with `supabase/seed_test_data.sql`. This adds 300 FAKE cast members (names start with "TEST").
 4. Add yourself (and other managers) as managers. New query, then run, using lower-case emails:
    ```sql
@@ -67,7 +67,7 @@ Supabase's built-in email only sends a couple of emails an hour, so connect Rese
 4. **Authentication > Rate Limits**: raise "emails per hour" (e.g. to 100) so a whole cast can log in on the same day.
 
 ### 5. Add the cast
-Managers: **Add cast** page, upload the spreadsheet (columns `full_name,email,phone,role,location,skills`). Then send everyone the website address. They enter their email, get a link and a 6-digit code, and they're in. They stay logged in on that phone. Tell them to add it to their home screen (instructions are on their My details page).
+Managers: **Add cast** page, upload the spreadsheet (columns `full_name,email,phone,roles,location,skills`). Then send everyone the website address. They enter their email, get a link and a 6-digit code, and they're in. They stay logged in on that phone. Tell them to add it to their home screen (instructions are on their My details page).
 
 ## Removing the fake test data
 In Supabase SQL Editor run:
@@ -88,7 +88,7 @@ Things you can change in one place: roles, locations, the "out of date" number o
 
 ## How the security works (for whoever maintains this)
 - Every table has Row Level Security. Performers can read and change only their own rows; managers (emails in `app_admins`) can read everything. See the migration file.
-- Performers can only edit their name, phone, location and skills. Role, active and email are changed by managers through server code.
+- Performers can only edit their name, phone, location and skills. Roles, active and email are changed by managers through server code.
 - The secret service role key is only used in `lib/supabase/admin.ts`, which can't be imported into browser code, and only after a server-side manager check (or to check an email is on the roster at login).
 - Logins: invite-only. The login page only sends an email if the address is an active cast member or a manager.
 - Search engines are blocked (`robots.txt` and a `noindex` header on every page).

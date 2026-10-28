@@ -3,7 +3,7 @@ import { AdminNav } from "@/components/AdminNav";
 import { TimeControls } from "@/components/TimeControls";
 import { requireAdmin } from "@/lib/auth";
 import { cellFor, getWindow, groupWeeks, indexRows, isAvailable, monthDays, monthLabel, shiftMonth, shortDate, todayLondon, weekday } from "@/lib/availability";
-import { cap, type WindowKey } from "@/lib/config";
+import { describe, type WindowKey } from "@/lib/config";
 import { getAvailability, getCast, getWeeks } from "@/lib/data";
 import { qs } from "@/lib/qs";
 
@@ -97,7 +97,7 @@ export default async function Overview({ searchParams }: { searchParams: Promise
                     {g.list.map(({ c, cell }) => (
                       <li key={c.id} className="py-1.5 text-sm">
                         <Link href={`/admin/cast/${c.id}`} className="font-medium hover:underline">{c.full_name}</Link>
-                        <div className="text-xs text-muted">{cap(c.role)} · {c.location}{c.skills.length ? ` · ${c.skills.join(", ")}` : ""}</div>
+                        <div className="text-xs text-muted">{describe(c)}</div>
                         {cell.why && <div className="text-xs text-muted">{cell.why}</div>}
                       </li>
                     ))}

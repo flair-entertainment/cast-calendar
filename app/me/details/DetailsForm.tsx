@@ -5,7 +5,7 @@ import { Saved } from "@/components/Saved";
 import { LOCATIONS } from "@/lib/config";
 import { saveDetails } from "../actions";
 
-type M = { full_name: string; phone: string | null; location: string; skills: string[] };
+type M = { full_name: string; phone: string | null; location: string | null; skills: string[] };
 
 export function DetailsForm({ member }: { member: M }) {
   const [msg, setMsg] = useState("");
@@ -25,7 +25,8 @@ export function DetailsForm({ member }: { member: M }) {
       <label className="block text-xs text-muted">Full name<input name="full_name" defaultValue={member.full_name} required className={input} /></label>
       <label className="block text-xs text-muted">Phone<input name="phone" type="tel" defaultValue={member.phone ?? ""} className={input} /></label>
       <label className="block text-xs text-muted">Where you're based
-        <select name="location" defaultValue={member.location} className={input}>
+        <select name="location" defaultValue={member.location ?? ""} required className={input}>
+          <option value="" disabled>Choose…</option>
           {LOCATIONS.map((l) => <option key={l}>{l}</option>)}
         </select>
       </label>
