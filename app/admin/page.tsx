@@ -18,11 +18,13 @@ export default async function Overview({ searchParams }: { searchParams: Promise
   const win = getWindow(winKey, sp.cs, sp.ce);
   const days = monthDays(month);
 
-  const [cast, rows, weeks] = await Promise.all([
-    getCast(supabase, { activeOnly: true }).then((all) => all.filter((c) => c.confirmed)),
+  const [allActive, rows, weeks] = await Promise.all([
+    getCast(supabase, { activeOnly: true }),
     getAvailability(supabase, days[0], days[days.length - 1]),
     getWeeks(supabase),
   ]);
+  const cast = allActive.filter((c) => c.confirmed);
+  const unconfirmed = allActive.length - cast.length;
   const idx = indexRows(rows);
   const wk = groupWeeks(weeks);
   const N = cast.length;
@@ -64,6 +66,14 @@ export default async function Overview({ searchParams }: { searchParams: Promise
               <Link href={qs("/admin", params, { m: shiftMonth(month, 1), d: undefined })} className="rounded-lg border border-line bg-white px-3 py-1.5">›</Link>
             </div>
           </div>
+          {unconfirmed > 0 && (
+            <Link href="/admin/cast?new=1" className="mb-4 block rounded-lg bg-char text-beige px-4 py-3 text-sm hover:opacity-90">
+              <b>{unconfirmed} new sign-up{unconfirmed === 1 ? " isn't" : "s aren't"} counted here yet.</b> Confirm them on the Cast list to include them. →
+            </Link>
+          )}
+          {N === 0 && unconfirmed === 0 && (
+            <p className="mb-4 rounded-lg bg-white border border-line px-4 py-3 text-sm">No active performers yet. Once performers sign up and you confirm them, they'll be counted here.</p>
+          )}
           <div className="mb-4"><TimeControls hidden={{ m: month }} win={winKey} cs={sp.cs} ce={sp.ce} /></div>
           <div className="grid grid-cols-7 gap-1.5 text-xs uppercase tracking-wide text-muted mb-1.5">
             {["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].map((d) => <div key={d} className="px-1">{d}</div>)}

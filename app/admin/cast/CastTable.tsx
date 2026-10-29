@@ -9,7 +9,7 @@ import type { CastMember } from "@/lib/data";
 
 const KEY = "cc-selected";
 
-export function CastTable({ cast, today }: { cast: CastMember[]; today: string }) {
+export function CastTable({ cast, today, startNewOnly = false }: { cast: CastMember[]; today: string; startNewOnly?: boolean }) {
   const router = useRouter();
   const [q, setQ] = useState("");
   const [role, setRole] = useState("");
@@ -17,7 +17,7 @@ export function CastTable({ cast, today }: { cast: CastMember[]; today: string }
   const [skill, setSkill] = useState("");
   const [active, setActive] = useState("active");
   const [staleOnly, setStaleOnly] = useState(false);
-  const [newOnly, setNewOnly] = useState(false);
+  const [newOnly, setNewOnly] = useState(startNewOnly);
   const [sel, setSel] = useState<Set<string>>(new Set());
 
   // Remember the selection while moving between pages (this browser only).
