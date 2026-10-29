@@ -48,6 +48,7 @@ export default async function Compare({ searchParams }: { searchParams: Promise<
   const N = cast.length;
   const everyone = days.filter((_, i) => counts[i] === N);
   const highlight = sp.all === "1";
+  const narrowed = winKey !== "full" || span !== "2w" || highlight;
 
   const prev = span === "month" ? `${shiftMonth(start.slice(0, 7), -1)}-01` : addDays(start, -14);
   const next = span === "month" ? `${shiftMonth(start.slice(0, 7), 1)}-01` : addDays(start, 14);
@@ -58,26 +59,34 @@ export default async function Compare({ searchParams }: { searchParams: Promise<
       <main className="mx-auto max-w-[1600px] px-4 py-6">
         <div className="flex flex-wrap items-end justify-between gap-4 mb-3">
           <div>
-            <h1 className="font-serif text-3xl">Compare {N} cast</h1>
-            <p className="text-sm text-muted">{win.label} · {span === "month" ? monthLabel(start.slice(0, 7)) : `${ukDate(days[0])} to ${ukDate(days[days.length - 1])}`}</p>
+            <h1 className="font-serif text-3xl">Comparing {N} {N === 1 ? "person" : "people"}</h1>
+            <p className="text-sm text-muted">
+              {span === "month" ? monthLabel(start.slice(0, 7)) : `${ukDate(days[0])} to ${ukDate(days[days.length - 1])}`} · {win.label}
+              {" · "}<b className="text-ink">{everyone.length}</b> day{everyone.length === 1 ? "" : "s"} when everyone is free ·{" "}
+              <Link href="/admin/cast" className="underline">Change people</Link>
+            </p>
           </div>
           <div className="flex flex-wrap items-center gap-2">
-            <Link href={qs("/admin/compare", params, { start: prev })} className="rounded-lg border border-line bg-white px-3 py-1.5">‹ Previous</Link>
-            <Link href={qs("/admin/compare", params, { start: today, span: span })} className="rounded-lg border border-line bg-white px-3 py-1.5 text-sm">Today</Link>
-            <Link href={qs("/admin/compare", params, { start: next })} className="rounded-lg border border-line bg-white px-3 py-1.5">Next ›</Link>
-            <div className="flex rounded-lg bg-beige p-0.5 text-sm">
-              <Link href={qs("/admin/compare", params, { span: "2w" })} className={`px-3 py-1 rounded-md ${span === "2w" ? "bg-white font-medium" : ""}`}>2 weeks</Link>
-              <Link href={qs("/admin/compare", params, { span: "month", start: `${start.slice(0, 7)}-01` })} className={`px-3 py-1 rounded-md ${span === "month" ? "bg-white font-medium" : ""}`}>Month</Link>
-            </div>
+            <Link href={qs("/admin/compare", params, { start: prev })} className="rounded-lg border border-line bg-white px-3 py-1.5">‹ Earlier</Link>
+            <Link href={qs("/admin/compare", params, { start: today })} className="rounded-lg border border-line bg-white px-3 py-1.5 text-sm">Today</Link>
+            <Link href={qs("/admin/compare", params, { start: next })} className="rounded-lg border border-line bg-white px-3 py-1.5">Later ›</Link>
           </div>
         </div>
 
-        <div className="flex flex-wrap items-end gap-4 mb-3">
-          <TimeControls hidden={{ ids: ids.join(","), start, span, all: sp.all }} win={winKey} cs={sp.cs} ce={sp.ce} />
-          <Link href={qs("/admin/compare", params, { all: highlight ? undefined : "1" })} className={`rounded-lg px-3 py-1.5 text-sm border ${highlight ? "bg-char text-beige border-char" : "bg-white border-line"}`}>
-            {highlight ? "✓ " : ""}Highlight days everyone is available ({everyone.length})
-          </Link>
-        </div>
+        <details open={narrowed} className="mb-3 rounded-lg border border-line bg-white">
+          <summary className="cursor-pointer px-4 py-2 text-sm font-medium">Narrow down (optional): time of day, how many days, highlight when everyone&apos;s free</summary>
+          <div className="flex flex-wrap items-end gap-4 px-4 pb-3 pt-1">
+            <div className="flex rounded-lg bg-beige p-0.5 text-sm">
+              <Link href={qs("/admin/compare", params, { span: "2w" })} className={`px-3 py-1 rounded-md ${span === "2w" ? "bg-white font-medium" : ""}`}>2 weeks</Link>
+              <Link href={qs("/admin/compare", params, { span: "month", start: `${start.slice(0, 7)}-01` })} className={`px-3 py-1 rounded-md ${span === "month" ? "bg-white font-medium" : ""}`}>Whole month</Link>
+            </div>
+            <TimeControls hidden={{ ids: ids.join(","), start, span, all: sp.all }} win={winKey} cs={sp.cs} ce={sp.ce} />
+            <Link href={qs("/admin/compare", params, { all: highlight ? undefined : "1" })} className={`rounded-lg px-3 py-1.5 text-sm border ${highlight ? "bg-char text-beige border-char" : "bg-white border-line"}`}>
+              {highlight ? "✓ " : ""}Highlight days everyone is free ({everyone.length})
+            </Link>
+            {narrowed && <Link href={qs("/admin/compare", { ids: ids.join(","), start })} className="text-sm underline text-muted">Reset</Link>}
+          </div>
+        </details>
 
         <div className="overflow-auto rounded-xl border border-line bg-white max-h-[75vh]">
           <table className="border-collapse text-xs">

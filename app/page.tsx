@@ -4,5 +4,5 @@ import { getSession } from "@/lib/auth";
 export default async function Home() {
   const { user, isAdmin } = await getSession();
   if (!user) redirect("/login");
-  redirect(isAdmin ? "/admin" : "/me");
+  redirect(isAdmin ? "/admin/cast" : "/me");
 }

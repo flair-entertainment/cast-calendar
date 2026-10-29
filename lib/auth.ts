@@ -34,7 +34,7 @@ export async function requireCast() {
     supabase.from("cast_members").select("*").eq("user_id", user.id).maybeSingle(),
   ]);
   if (!member) {
-    if (isAdmin) redirect("/admin");
+    if (isAdmin) redirect("/admin/cast");
     redirect("/login?error=not-on-roster");
   }
   return { supabase, user, isAdmin: Boolean(isAdmin), member };
