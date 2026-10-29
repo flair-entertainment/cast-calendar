@@ -14,7 +14,7 @@ Flair's performer availability system.
 | Performers | My regular week | Repeating commitments, e.g. day job Mon-Fri 09:00-17:00. |
 | Performers | My details | Name, phone, location, skills. |
 | Managers | Cast list | Where managers start. Tick the people you want (click anywhere on their row), then press Compare. Search by name; role, location, skill, active, out-of-date and new sign-up filters are under "Filters". |
-| Managers | Compare | Opens straight away: one row per person, one column per day for the next 2 weeks, with a count of who's free on top. "Narrow down" (optional) sets time of day, a whole month, or highlights days everyone is free. |
+| Managers | Compare | Opens straight away: bold month header, one row per person, one column per day (2 weeks or a month), count of who's free on top. Toggle at the top: Any time, Daytime, Evenings or Custom hours. Tap a square for the reason, or a date for everyone that day. |
 | Managers | Cast profile | One person's details, regular week, upcoming dates and when they last updated. Managers can change roles, location and active here. |
 | Managers | Add cast | Upload a spreadsheet (CSV) to add or update cast in one go. They can log in straight away. |
 

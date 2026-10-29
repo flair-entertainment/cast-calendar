@@ -1,15 +1,22 @@
 import Link from "next/link";
 import { AdminNav } from "@/components/AdminNav";
-import { TimeControls } from "@/components/TimeControls";
 import { requireAdmin } from "@/lib/auth";
-import { addDays, cellFor, getWindow, groupWeeks, indexRows, isAvailable, monthDays, monthLabel, range, shiftMonth, shortDate, todayLondon, ukDate, weekday, DOW } from "@/lib/availability";
-import { describe, type WindowKey } from "@/lib/config";
+import { addDays, cellFor, getWindow, groupWeeks, indexRows, isAvailable, monthDays, monthLabel, range, shiftMonth, todayLondon, ukDate, type WeekRow } from "@/lib/availability";
+import { describe, TIME_WINDOWS, type WindowKey } from "@/lib/config";
 import { getAvailability, getCast, getWeeks } from "@/lib/data";
 import { qs } from "@/lib/qs";
+import { CompareGrid } from "./CompareGrid";
 
 type SP = { ids?: string; start?: string; span?: string; win?: string; cs?: string; ce?: string; all?: string };
 const UUID = /^[0-9a-f-]{36}$/i;
-const STYLE: Record<string, string> = { confirmed: "st-confirmed", free: "st-free", part: "st-part", maybe: "st-maybe", out: "st-out" };
+
+// The time-of-day toggle at the top. "full" is shown as "Any time".
+const TOGGLE: { key: WindowKey; label: string; hint: string }[] = [
+  { key: "full", label: "Any time", hint: `${TIME_WINDOWS.full.start} to ${TIME_WINDOWS.full.end}` },
+  { key: "day", label: "Daytime", hint: `${TIME_WINDOWS.day.start} to ${TIME_WINDOWS.day.end}` },
+  { key: "eve", label: "Evenings", hint: `${TIME_WINDOWS.eve.start} to ${TIME_WINDOWS.eve.end}` },
+  { key: "custom", label: "Custom hours", hint: "" },
+];
 
 export default async function Compare({ searchParams }: { searchParams: Promise<SP> }) {
   const { supabase } = await requireAdmin();
@@ -43,96 +50,72 @@ export default async function Compare({ searchParams }: { searchParams: Promise<
   ]);
   const idx = indexRows(rows);
   const wk = groupWeeks(weeks);
-  const grid = cast.map((c) => ({ c, cells: days.map((d) => cellFor(d, idx.get(`${c.id}|${d}`), wk.get(c.id) ?? [], win)) }));
-  const counts = days.map((_, i) => grid.filter((g) => isAvailable(g.cells[i])).length);
-  const N = cast.length;
-  const everyone = days.filter((_, i) => counts[i] === N);
+  const people = cast.map((c) => ({
+    id: c.id,
+    name: c.full_name,
+    desc: describe(c),
+    isNew: !c.confirmed,
+    cells: days.map((d) => cellFor(d, idx.get(`${c.id}|${d}`), (wk.get(c.id) ?? []) as WeekRow[], win)),
+  }));
+  const N = people.length;
+  const counts = days.map((_, i) => people.filter((p) => isAvailable(p.cells[i])).length);
+  const everyone = counts.filter((n) => n === N).length;
   const highlight = sp.all === "1";
-  const narrowed = winKey !== "full" || span !== "2w" || highlight;
 
   const prev = span === "month" ? `${shiftMonth(start.slice(0, 7), -1)}-01` : addDays(start, -14);
   const next = span === "month" ? `${shiftMonth(start.slice(0, 7), 1)}-01` : addDays(start, 14);
+  const months = [...new Set(days.map((d) => d.slice(0, 7)))].map(monthLabel).join(" / ");
 
   return (
     <>
       <AdminNav active="/admin/compare" />
       <main className="mx-auto max-w-[1600px] px-4 py-6">
-        <div className="flex flex-wrap items-end justify-between gap-4 mb-3">
+        <div className="flex flex-wrap items-end justify-between gap-4 mb-4">
           <div>
-            <h1 className="font-serif text-3xl">Comparing {N} {N === 1 ? "person" : "people"}</h1>
-            <p className="text-sm text-muted">
-              {span === "month" ? monthLabel(start.slice(0, 7)) : `${ukDate(days[0])} to ${ukDate(days[days.length - 1])}`} · {win.label}
-              {" · "}<b className="text-ink">{everyone.length}</b> day{everyone.length === 1 ? "" : "s"} when everyone is free ·{" "}
-              <Link href="/admin/cast" className="underline">Change people</Link>
-            </p>
+            <p className="text-sm text-muted">Comparing {N} {N === 1 ? "person" : "people"} · <Link href="/admin/cast" className="underline">Change people</Link></p>
+            <h1 className="font-serif text-4xl">{months}</h1>
+            <p className="text-sm text-muted">{ukDate(days[0])} to {ukDate(days[days.length - 1])}</p>
           </div>
           <div className="flex flex-wrap items-center gap-2">
-            <Link href={qs("/admin/compare", params, { start: prev })} className="rounded-lg border border-line bg-white px-3 py-1.5">‹ Earlier</Link>
-            <Link href={qs("/admin/compare", params, { start: today })} className="rounded-lg border border-line bg-white px-3 py-1.5 text-sm">Today</Link>
-            <Link href={qs("/admin/compare", params, { start: next })} className="rounded-lg border border-line bg-white px-3 py-1.5">Later ›</Link>
-          </div>
-        </div>
-
-        <details open={narrowed} className="mb-3 rounded-lg border border-line bg-white">
-          <summary className="cursor-pointer px-4 py-2 text-sm font-medium">Narrow down (optional): time of day, how many days, highlight when everyone&apos;s free</summary>
-          <div className="flex flex-wrap items-end gap-4 px-4 pb-3 pt-1">
+            <Link href={qs("/admin/compare", params, { start: prev })} className="rounded-lg border border-line bg-white px-3 py-2">‹ Earlier</Link>
+            <Link href={qs("/admin/compare", params, { start: span === "month" ? `${today.slice(0, 7)}-01` : today })} className="rounded-lg border border-line bg-white px-3 py-2 text-sm">Today</Link>
+            <Link href={qs("/admin/compare", params, { start: next })} className="rounded-lg border border-line bg-white px-3 py-2">Later ›</Link>
             <div className="flex rounded-lg bg-beige p-0.5 text-sm">
-              <Link href={qs("/admin/compare", params, { span: "2w" })} className={`px-3 py-1 rounded-md ${span === "2w" ? "bg-white font-medium" : ""}`}>2 weeks</Link>
-              <Link href={qs("/admin/compare", params, { span: "month", start: `${start.slice(0, 7)}-01` })} className={`px-3 py-1 rounded-md ${span === "month" ? "bg-white font-medium" : ""}`}>Whole month</Link>
+              <Link href={qs("/admin/compare", params, { span: "2w" })} className={`px-3 py-1.5 rounded-md ${span === "2w" ? "bg-white font-medium" : ""}`}>2 weeks</Link>
+              <Link href={qs("/admin/compare", params, { span: "month", start: `${start.slice(0, 7)}-01` })} className={`px-3 py-1.5 rounded-md ${span === "month" ? "bg-white font-medium" : ""}`}>Month</Link>
             </div>
-            <TimeControls hidden={{ ids: ids.join(","), start, span, all: sp.all }} win={winKey} cs={sp.cs} ce={sp.ce} />
-            <Link href={qs("/admin/compare", params, { all: highlight ? undefined : "1" })} className={`rounded-lg px-3 py-1.5 text-sm border ${highlight ? "bg-char text-beige border-char" : "bg-white border-line"}`}>
-              {highlight ? "✓ " : ""}Highlight days everyone is free ({everyone.length})
-            </Link>
-            {narrowed && <Link href={qs("/admin/compare", { ids: ids.join(","), start })} className="text-sm underline text-muted">Reset</Link>}
           </div>
-        </details>
-
-        <div className="overflow-auto rounded-xl border border-line bg-white max-h-[75vh]">
-          <table className="border-collapse text-xs">
-            <thead className="sticky top-0 z-20 bg-white">
-              <tr>
-                <th className="sticky left-0 z-30 bg-white p-2 text-left min-w-56 border-b border-line">Cast member</th>
-                {days.map((d, i) => (
-                  <th key={d} className={`p-1 min-w-11 border-b border-line font-medium ${highlight && counts[i] === N ? "bg-char text-beige" : weekday(d) % 6 === 0 ? "bg-sand" : ""}`}>
-                    <div>{DOW[weekday(d)].slice(0, 2)}</div>
-                    <div className="text-sm">{Number(d.slice(8))}</div>
-                  </th>
-                ))}
-              </tr>
-              <tr>
-                <th className="sticky left-0 z-30 bg-beige p-2 text-left border-b border-line">Available</th>
-                {counts.map((n, i) => (
-                  <th key={i} className={`p-1 border-b border-line ${n === N ? "st-confirmed" : "bg-beige"}`}>{n}/{N}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {grid.map(({ c, cells }) => (
-                <tr key={c.id}>
-                  <td className="sticky left-0 z-10 bg-white p-2 border-b border-line">
-                    <Link href={`/admin/cast/${c.id}`} className="font-medium text-sm hover:underline">{c.full_name}</Link>{!c.confirmed && <span className="ml-1.5 text-[10px] font-semibold rounded bg-char text-beige px-1">NEW</span>}
-                    <div className="text-muted">{describe(c)}</div>
-                  </td>
-                  {cells.map((cell, i) => (
-                    <td key={i} className={`border-b border-l border-line p-0 ${highlight && counts[i] === N ? "outline outline-2 -outline-offset-2 outline-char" : ""}`}>
-                      <div className={`m-0.5 h-8 rounded ${STYLE[cell.st]}`} title={`${c.full_name} · ${shortDate(days[i])}: ${cell.why || "Available (not marked)"}`} />
-                    </td>
-                  ))}
-                </tr>
-              ))}
-            </tbody>
-          </table>
         </div>
 
-        <div className="flex flex-wrap gap-4 text-xs text-muted mt-3">
-          <span><i className="inline-block w-3 h-3 rounded st-confirmed align-middle mr-1" />Confirmed available</span>
-          <span><i className="inline-block w-3 h-3 rounded st-free align-middle mr-1" />Not marked (counts as available)</span>
-          <span><i className="inline-block w-3 h-3 rounded st-part align-middle mr-1" />Partly free (regular week clashes)</span>
-          <span><i className="inline-block w-3 h-3 rounded st-maybe align-middle mr-1" />Maybe</span>
-          <span><i className="inline-block w-3 h-3 rounded st-out align-middle mr-1" />Unavailable</span>
-          <span>Hover over a cell for the reason.</span>
+        {/* Time of day toggle */}
+        <div className="mb-4 flex flex-wrap items-center gap-3">
+          <span className="text-xs uppercase tracking-wide text-muted">Free for</span>
+          <div className="flex flex-wrap rounded-xl bg-char p-1">
+            {TOGGLE.map((t) => (
+              <Link
+                key={t.key}
+                href={qs("/admin/compare", params, { win: t.key })}
+                className={`rounded-lg px-4 py-2 text-sm ${winKey === t.key ? "bg-beige text-ink font-semibold" : "text-beige/80 hover:text-white"}`}
+              >
+                {t.label}{t.hint && <span className="ml-1.5 text-xs opacity-70">{t.hint}</span>}
+              </Link>
+            ))}
+          </div>
+          {winKey === "custom" && (
+            <form className="flex items-center gap-2">
+              {Object.entries({ ids: ids.join(","), start, span, all: sp.all, win: "custom" }).map(([k, v]) => (v ? <input key={k} type="hidden" name={k} value={v} /> : null))}
+              <input type="time" name="cs" defaultValue={sp.cs ?? "18:00"} className="rounded-lg border border-line bg-white px-2 py-1.5 text-sm" />
+              <span className="text-sm">to</span>
+              <input type="time" name="ce" defaultValue={sp.ce ?? "21:00"} className="rounded-lg border border-line bg-white px-2 py-1.5 text-sm" />
+              <button className="rounded-lg bg-char text-beige px-3 py-1.5 text-sm">Apply</button>
+            </form>
+          )}
+          <Link href={qs("/admin/compare", params, { all: highlight ? undefined : "1" })} className={`ml-auto rounded-lg px-3 py-2 text-sm border ${highlight ? "bg-char text-beige border-char" : "bg-white border-line"}`}>
+            {highlight ? "✓ " : ""}Highlight days everyone is free ({everyone})
+          </Link>
         </div>
+
+        <CompareGrid days={days} people={people} counts={counts} highlight={highlight} today={today} winLabel={win.label} />
       </main>
     </>
   );
