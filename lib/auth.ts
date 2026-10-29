@@ -23,16 +23,19 @@ export async function requireAdmin() {
 }
 
 export async function requireCast() {
-  const s = await getSession();
-  if (!s.user) redirect("/login");
-  const { data: member } = await s.supabase
-    .from("cast_members")
-    .select("*")
-    .eq("user_id", s.user.id)
-    .maybeSingle();
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) redirect("/login");
+  // Fetch both at once to save a round trip.
+  const [{ data: isAdmin }, { data: member }] = await Promise.all([
+    supabase.rpc("is_admin"),
+    supabase.from("cast_members").select("*").eq("user_id", user.id).maybeSingle(),
+  ]);
   if (!member) {
-    if (s.isAdmin) redirect("/admin");
+    if (isAdmin) redirect("/admin");
     redirect("/login?error=not-on-roster");
   }
-  return { ...s, member };
+  return { supabase, user, isAdmin: Boolean(isAdmin), member };
 }

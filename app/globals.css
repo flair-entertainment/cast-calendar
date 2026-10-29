@@ -21,3 +21,5 @@ html, body { background: var(--color-sand); color: var(--color-ink); }
 .st-maybe { background: #e0a03a; color: #fff; }
 .st-out { background: #c2463e; color: #fff; }
 .st-none { background: #fff; color: #000; }
+
+@keyframes loading { 0% { transform: translateX(-100%); } 100% { transform: translateX(300%); } }
