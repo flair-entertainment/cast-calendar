@@ -29,7 +29,7 @@ export async function setDays(dates: string[], status: Status | null, note?: str
     const { error } = await supabase.from("availability").upsert(rows, { onConflict: "cast_member_id,date" });
     if (error) return { ok: false };
   }
-  revalidatePath("/me");
+  // No page refresh needed: the calendar already shows the change, which keeps taps fast.
   return { ok: true };
 }
 

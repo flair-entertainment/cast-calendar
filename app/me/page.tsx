@@ -20,7 +20,7 @@ export default async function MyAvailability({ searchParams }: { searchParams: P
     <>
       <CastNav active="/me" name={member.full_name} />
       <main className="mx-auto max-w-xl px-4 py-5">
-        <MyCalendar key={month} month={month} today={today} rows={rows ?? []} />
+        <MyCalendar memberId={member.id} month={month} today={today} rows={rows ?? []} />
       </main>
     </>
   );

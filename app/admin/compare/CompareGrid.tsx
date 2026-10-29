@@ -1,11 +1,30 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
-import { DOW, monthLabel, shortDate, weekday, type Cell } from "@/lib/availability";
+import { useEffect, useMemo, useState } from "react";
+import { DOW, cellFor, getWindow, isAvailable, monthLabel, shortDate, ukDate, weekday, type AvailabilityRow, type Cell, type WeekRow } from "@/lib/availability";
+import { TIME_WINDOWS, type WindowKey } from "@/lib/config";
 
-type Person = { id: string; name: string; desc: string; isNew: boolean; cells: Cell[] };
-type Props = { days: string[]; people: Person[]; counts: number[]; highlight: boolean; today: string; winLabel: string };
+export type PersonData = { id: string; name: string; desc: string; isNew: boolean; rows: Record<string, AvailabilityRow>; weeks: WeekRow[] };
+type Props = {
+  ids: string[];
+  days: string[];
+  people: PersonData[];
+  today: string;
+  span: "2w" | "month";
+  nav: { prev: string; next: string; today: string; monthStart: string };
+  initialWin: WindowKey;
+  initialCs: string;
+  initialCe: string;
+  initialHighlight: boolean;
+};
+
+const TOGGLE: { key: WindowKey; label: string; hint: string }[] = [
+  { key: "full", label: "Any time", hint: `${TIME_WINDOWS.full.start} to ${TIME_WINDOWS.full.end}` },
+  { key: "day", label: "Daytime", hint: `${TIME_WINDOWS.day.start} to ${TIME_WINDOWS.day.end}` },
+  { key: "eve", label: "Evenings", hint: `${TIME_WINDOWS.eve.start} to ${TIME_WINDOWS.eve.end}` },
+  { key: "custom", label: "Custom hours", hint: "" },
+];
 
 const STYLE: Record<Cell["st"], string> = { confirmed: "st-confirmed", free: "st-free", part: "st-part", maybe: "st-maybe", out: "st-out" };
 const MARK: Record<Cell["st"], string> = { confirmed: "✓", free: "", part: "½", maybe: "?", out: "✕" };
@@ -17,10 +36,37 @@ const LABEL: Record<Cell["st"], string> = {
   out: "Unavailable",
 };
 
-export function CompareGrid({ days, people, counts, highlight, today, winLabel }: Props) {
+export function CompareGrid({ ids, days, people: data, today, span, nav, initialWin, initialCs, initialCe, initialHighlight }: Props) {
+  // Time of day, custom hours and highlighting all work instantly here, with no page reload.
+  const [winKey, setWinKey] = useState<WindowKey>(initialWin);
+  const [cs, setCs] = useState(initialCs);
+  const [ce, setCe] = useState(initialCe);
+  const [highlight, setHighlight] = useState(initialHighlight);
   // What's shown in the info bar: one person on one day, or a whole day.
   const [pick, setPick] = useState<{ p: number; d: number } | { d: number } | null>(null);
+
+  const win = useMemo(() => getWindow(winKey, cs, ce), [winKey, cs, ce]);
+  const winLabel = win.label;
+  const people = useMemo(
+    () => data.map((p) => ({ ...p, cells: days.map((d) => cellFor(d, p.rows[d], p.weeks, win)) })),
+    [data, days, win],
+  );
   const N = people.length;
+  const counts = days.map((_, i) => people.filter((p) => isAvailable(p.cells[i])).length);
+  const everyone = counts.filter((n) => n === N).length;
+
+  // Keep the address bar up to date, so refreshing or sharing keeps these settings.
+  const query = (o: Record<string, string | undefined>) => {
+    const sp = new URLSearchParams();
+    const all = { ids: ids.join(","), span, win: winKey, cs: winKey === "custom" ? cs : undefined, ce: winKey === "custom" ? ce : undefined, all: highlight ? "1" : undefined, ...o };
+    for (const [k, v] of Object.entries(all)) if (v) sp.set(k, v);
+    return `/admin/compare?${sp.toString()}`;
+  };
+  useEffect(() => {
+    try { window.history.replaceState(null, "", query({ start: days[0] })); } catch {}
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [winKey, cs, ce, highlight]);
+  const months = [...new Set(days.map((d) => d.slice(0, 7)))].map(monthLabel).join(" / ");
 
   // Month bands: consecutive days in the same month share one header cell.
   const bands: { month: string; span: number }[] = [];
@@ -37,6 +83,48 @@ export function CompareGrid({ days, people, counts, highlight, today, winLabel }
 
   return (
     <div>
+      <div className="flex flex-wrap items-end justify-between gap-4 mb-4">
+        <div>
+          <p className="text-sm text-muted">Comparing {N} {N === 1 ? "person" : "people"} · <Link href="/admin/cast" className="underline">Change people</Link></p>
+          <h1 className="font-serif text-4xl">{months}</h1>
+          <p className="text-sm text-muted">{ukDate(days[0])} to {ukDate(days[days.length - 1])}</p>
+        </div>
+        <div className="flex flex-wrap items-center gap-2">
+          <Link href={query({ start: nav.prev })} className="rounded-lg border border-line bg-white px-3 py-2">‹ Earlier</Link>
+          <Link href={query({ start: nav.today })} className="rounded-lg border border-line bg-white px-3 py-2 text-sm">Today</Link>
+          <Link href={query({ start: nav.next })} className="rounded-lg border border-line bg-white px-3 py-2">Later ›</Link>
+          <div className="flex rounded-lg bg-beige p-0.5 text-sm">
+            <Link href={query({ span: "2w", start: days[0] })} className={`px-3 py-1.5 rounded-md ${span === "2w" ? "bg-white font-medium" : ""}`}>2 weeks</Link>
+            <Link href={query({ span: "month", start: nav.monthStart })} className={`px-3 py-1.5 rounded-md ${span === "month" ? "bg-white font-medium" : ""}`}>Month</Link>
+          </div>
+        </div>
+      </div>
+
+      <div className="mb-4 flex flex-wrap items-center gap-3">
+        <span className="text-xs uppercase tracking-wide text-muted">Free for</span>
+        <div className="flex flex-wrap rounded-xl bg-char p-1">
+          {TOGGLE.map((t) => (
+            <button
+              key={t.key}
+              onClick={() => setWinKey(t.key)}
+              className={`rounded-lg px-4 py-2 text-sm ${winKey === t.key ? "bg-beige text-ink font-semibold" : "text-beige/80 hover:text-white"}`}
+            >
+              {t.label}{t.hint && <span className="ml-1.5 text-xs opacity-70">{t.hint}</span>}
+            </button>
+          ))}
+        </div>
+        {winKey === "custom" && (
+          <div className="flex items-center gap-2">
+            <input type="time" value={cs} onChange={(e) => setCs(e.target.value)} className="rounded-lg border border-line bg-white px-2 py-1.5 text-sm" aria-label="From" />
+            <span className="text-sm">to</span>
+            <input type="time" value={ce} onChange={(e) => setCe(e.target.value)} className="rounded-lg border border-line bg-white px-2 py-1.5 text-sm" aria-label="To" />
+          </div>
+        )}
+        <button onClick={() => setHighlight((h) => !h)} className={`ml-auto rounded-lg px-3 py-2 text-sm border ${highlight ? "bg-char text-beige border-char" : "bg-white border-line"}`}>
+          {highlight ? "✓ " : ""}Highlight days everyone is free ({everyone})
+        </button>
+      </div>
+
       {/* Info bar: tap a cell or a date to see details here */}
       <div className="mb-3 min-h-14 rounded-xl border border-line bg-white px-4 py-3 text-sm">
         {!pick ? (

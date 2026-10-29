@@ -1,7 +1,7 @@
 "use client";
 
-import Link from "next/link";
-import { useState, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
+import { createClient } from "@/lib/supabase/client";
 import { Saved } from "@/components/Saved";
 import { addDays, monthDays, monthLabel, shiftMonth, weekday, daysBetween, ukDate } from "@/lib/availability";
 import type { Status } from "@/lib/config";
@@ -12,8 +12,39 @@ const NEXT: Record<string, Status | null> = { none: "unavailable", unavailable: 
 const STYLE: Record<string, string> = { unavailable: "st-out", maybe: "st-maybe", available: "st-confirmed", none: "st-none" };
 const LABEL: Record<string, string> = { unavailable: "Can't do", maybe: "Maybe", available: "Free" };
 
-export function MyCalendar({ month, today, rows }: { month: string; today: string; rows: Row[] }) {
+export function MyCalendar({ memberId, month: startMonth, today, rows }: { memberId: string; month: string; today: string; rows: Row[] }) {
   const [map, setMap] = useState(() => new Map(rows.map((r) => [r.date, r])));
+  const [month, setMonth] = useState(startMonth);
+  const [loading, setLoading] = useState(false);
+  // Months already loaded. Changing month loads straight from the database in the
+  // browser (the database's security rules only return this performer's own dates).
+  const loaded = useRef(new Set([startMonth]));
+
+  async function loadMonth(m: string) {
+    if (loaded.current.has(m)) return;
+    loaded.current.add(m);
+    const days = monthDays(m);
+    const { data, error } = await createClient()
+      .from("availability")
+      .select("date, status, note")
+      .eq("cast_member_id", memberId)
+      .gte("date", days[0])
+      .lte("date", days[days.length - 1]);
+    if (error) { loaded.current.delete(m); return; }
+    setMap((old) => {
+      const next = new Map(old);
+      (data ?? []).forEach((r) => { if (!next.has(r.date)) next.set(r.date, r as Row); });
+      return next;
+    });
+  }
+  async function goTo(m: string) {
+    setSel([]); setAnchor(null);
+    setMonth(m);
+    try { window.history.replaceState(null, "", `/me?m=${m}`); } catch {}
+    if (!loaded.current.has(m)) { setLoading(true); await loadMonth(m); setLoading(false); }
+  }
+  // Load the months either side in the background so the arrows feel instant.
+  useEffect(() => { loadMonth(shiftMonth(month, 1)); loadMonth(shiftMonth(month, -1)); }, [month]); // eslint-disable-line react-hooks/exhaustive-deps
   const [selecting, setSelecting] = useState(false);
   const [anchor, setAnchor] = useState<string | null>(null);
   const [sel, setSel] = useState<string[]>([]);
@@ -68,9 +99,9 @@ export function MyCalendar({ month, today, rows }: { month: string; today: strin
   return (
     <div>
       <div className="flex items-center justify-between mb-3">
-        <Link href={`/me?m=${shiftMonth(month, -1)}`} className="rounded-lg border border-line bg-white px-3 py-2" aria-label="Previous month">‹</Link>
-        <h1 className="font-serif text-xl">{monthLabel(month)}</h1>
-        <Link href={`/me?m=${shiftMonth(month, 1)}`} className="rounded-lg border border-line bg-white px-3 py-2" aria-label="Next month">›</Link>
+        <button onClick={() => goTo(shiftMonth(month, -1))} className="rounded-lg border border-line bg-white px-4 py-2" aria-label="Previous month">‹</button>
+        <h1 className="font-serif text-xl">{monthLabel(month)}{loading && <span className="ml-2 text-sm text-muted">loading…</span>}</h1>
+        <button onClick={() => goTo(shiftMonth(month, 1))} className="rounded-lg border border-line bg-white px-4 py-2" aria-label="Next month">›</button>
       </div>
 
       <p className="text-sm text-muted mb-3">
