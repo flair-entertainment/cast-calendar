@@ -1,13 +1,16 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
 import { sendLoginEmail, verifyCode } from "./actions";
+import { useCountdown } from "@/lib/useCountdown";
 
-type State = { ok: boolean; message: string; email?: string } | null;
+type State = { ok: boolean; message: string; email?: string; wait?: number } | null;
 
 export function LoginForm({ error }: { error?: string }) {
   const [sent, send, sending] = useActionState<State, FormData>(sendLoginEmail, null);
   const [checked, check, checking] = useActionState<State, FormData>(verifyCode, null);
+  const left = useCountdown(sent?.wait, sent);
+  const [email, setEmail] = useState("");
 
   const input = "w-full rounded-lg border border-line bg-white px-3 py-3 text-base";
   const button = "w-full rounded-lg bg-char py-3 font-semibold text-beige disabled:opacity-60";
@@ -26,9 +29,10 @@ export function LoginForm({ error }: { error?: string }) {
       {!sent?.ok ? (
         <form action={send} className="space-y-3">
           <label className="block text-sm font-medium">Your email</label>
-          <input name="email" type="email" autoComplete="email" required className={input} placeholder="you@example.com" />
-          <button disabled={sending} className={button}>{sending ? "Sending…" : "Email me a code"}</button>
-          {sent && !sent.ok && <p className="text-sm text-red-700">{sent.message}</p>}
+          <input name="email" type="email" autoComplete="email" required value={email} onChange={(e) => setEmail(e.target.value)} className={input} placeholder="you@example.com" />
+          <button disabled={sending || left > 0} className={button}>{sending ? "Sending…" : left > 0 ? `Please wait ${left}s` : "Email me a code"}</button>
+          {left > 0 && <p className="text-sm text-red-700">Please wait {left}s before asking for another code. Check your inbox: the last code still works.</p>}
+          {sent && !sent.ok && !sent.wait && <p className="text-sm text-red-700">{sent.message}</p>}
         </form>
       ) : (
         <div className="space-y-4">
