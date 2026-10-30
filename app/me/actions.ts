@@ -39,6 +39,9 @@ export async function setDays(dates: string[], status: Status | null, note?: str
 export async function setBusy(date: string, start: string | null, end: string | null, note?: string) {
   const { supabase, member } = await requireCast();
   if (!isDate(date)) return { ok: false };
+  // Some phones send times with seconds (14:00:00); keep just hours and minutes.
+  start = start ? start.slice(0, 5) : null;
+  end = end ? end.slice(0, 5) : null;
   const timed = Boolean(start && end);
   if (timed && (!isTime(start!) || !isTime(end!) || end! <= start!)) return { ok: false };
   const { error } = await supabase.from("availability").upsert(
