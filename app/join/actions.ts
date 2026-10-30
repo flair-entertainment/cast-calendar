@@ -51,8 +51,10 @@ export async function joinFlair(_: unknown, formData: FormData): Promise<R> {
     email,
     options: { shouldCreateUser: false, emailRedirectTo: `${process.env.NEXT_PUBLIC_SITE_URL}/auth/confirm` },
   });
-  if (error && error.status === 429) {
-    return { ok: false, message: "Too many emails just now. Please wait a minute, then log in from the login page." };
+  if (error) {
+    console.error("join: login email failed", error.status, error.message);
+    if (error.status === 429) return { ok: false, message: "Too many emails just now. Your details are saved: wait a minute, then log in from the login page." };
+    return { ok: false, message: "Your details are saved, but the login email didn't send. Please try again from the login page in a minute." };
   }
   return {
     ok: true,
