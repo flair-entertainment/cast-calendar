@@ -17,7 +17,7 @@ export function JoinForm() {
   if (joined?.ok) {
     return (
       <div className="space-y-4">
-        <p className="rounded-lg bg-white p-3 text-sm">{joined.message} Tap the link in the email, or type the code below.</p>
+        <p className="rounded-lg bg-white p-3 text-sm">{joined.message} Type it below.</p>
         <form action={check} className="space-y-3">
           <input type="hidden" name="email" value={joined.email} />
           <label className="block text-sm font-medium">8-digit code</label>

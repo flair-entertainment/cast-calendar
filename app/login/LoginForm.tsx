@@ -27,12 +27,12 @@ export function LoginForm({ error }: { error?: string }) {
         <form action={send} className="space-y-3">
           <label className="block text-sm font-medium">Your email</label>
           <input name="email" type="email" autoComplete="email" required className={input} placeholder="you@example.com" />
-          <button disabled={sending} className={button}>{sending ? "Sending…" : "Email me a login link"}</button>
+          <button disabled={sending} className={button}>{sending ? "Sending…" : "Email me a code"}</button>
           {sent && !sent.ok && <p className="text-sm text-red-700">{sent.message}</p>}
         </form>
       ) : (
         <div className="space-y-4">
-          <p className="rounded-lg bg-white p-3 text-sm">{sent.message} Tap the link in the email on this device. If the email has an 8-digit code, you can type it below instead.</p>
+          <p className="rounded-lg bg-white p-3 text-sm">{sent.message} Type it below.</p>
           <form action={check} className="space-y-3">
             <input type="hidden" name="email" value={sent.email} />
             <label className="block text-sm font-medium">8-digit code</label>

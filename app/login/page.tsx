@@ -9,7 +9,7 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
         <h1 className="text-center text-muted mb-6">Cast Calendar</h1>
         <LoginForm error={error} />
         <p className="mt-5 text-sm text-center">New Flair performer? <a href="/join" className="underline font-medium">Sign up here</a></p>
-        <p className="mt-4 text-xs text-muted text-center">You'll stay logged in on this device, so you only need to do this once. Using Cast Calendar from your home screen? Type the 8-digit code rather than tapping the link.</p>
+        <p className="mt-4 text-xs text-muted text-center">You'll stay logged in on this device, so you only need to do this once.</p>
       </div>
     </main>
   );

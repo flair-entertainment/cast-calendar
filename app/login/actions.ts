@@ -32,7 +32,7 @@ export async function sendLoginEmail(_: unknown, formData: FormData) {
       return { ok: false, message: "Too many login emails just now. Please wait a minute and try again." };
     }
   }
-  return { ok: true, email, message: "If you're on the Flair roster, you'll get an email with a login link and an 8-digit code." };
+  return { ok: true, email, message: "If you're on the Flair roster, you'll get an email with an 8-digit code." };
 }
 
 // Step 2 (optional): type the 8-digit code instead of clicking the link.
