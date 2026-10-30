@@ -28,8 +28,10 @@ export async function sendLoginEmail(_: unknown, formData: FormData) {
       email,
       options: { shouldCreateUser: false, emailRedirectTo: `${process.env.NEXT_PUBLIC_SITE_URL}/auth/confirm` },
     });
-    if (error && error.status === 429) {
-      return { ok: false, message: "Too many login emails just now. Please wait a minute and try again." };
+    if (error) {
+      console.error("login: email failed", error.status, error.message);
+      if (error.status === 429) return { ok: false, message: "Too many login emails just now. Please wait a minute and try again." };
+      return { ok: false, message: "The login email didn't send. Please try again in a minute." };
     }
   }
   return { ok: true, email, message: "If you're on the Flair roster, you'll get an email with a login link and a 6-digit code." };
