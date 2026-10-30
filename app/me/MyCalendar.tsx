@@ -189,6 +189,8 @@ function DayView({ date, row, regular, onClose, onAllDay, onHours, onClear }: Da
   const [from, setFrom] = useState(busyRow?.start_time ? hhmm(busyRow.start_time) : "");
   const [to, setTo] = useState(busyRow?.end_time ? hhmm(busyRow.end_time) : "");
   const [note, setNote] = useState(busyRow?.note ?? "");
+  // Pick one: busy for certain hours (default) or all day. Only "Save" saves.
+  const [mode, setMode] = useState<"hours" | "allday">(busyRow && !busyRow.start_time ? "allday" : "hours");
   const scroller = useRef<HTMLDivElement>(null);
   const hours = Array.from({ length: (DEND - DSTART) / 60 }, (_, i) => DSTART + i * 60);
   const validHours = from && to && to > from;
@@ -201,6 +203,7 @@ function DayView({ date, row, regular, onClose, onAllDay, onHours, onClear }: Da
 
   // Tap an hour: start a one-hour busy block there (or stretch the current one).
   function tapHour(h: number) {
+    setMode("hours");
     const hs = fmtMin(h), he = fmtMin(Math.min(h + 60, DEND - 1));
     if (from && !to) { if (hs > from) setTo(he); else setFrom(hs); return; }
     if (from && to && hs >= to) return setTo(he);
@@ -208,9 +211,15 @@ function DayView({ date, row, regular, onClose, onAllDay, onHours, onClear }: Da
     setFrom(hs); setTo(he);
   }
 
-  const allDay = busyRow && !busyRow.start_time;
+  const allDay = mode === "allday";
   const blockS = validHours ? toMin(from) : null;
   const blockE = validHours ? toMin(to) : null;
+  const canSave = allDay || validHours;
+  function save() {
+    if (allDay) onAllDay(note);
+    else if (validHours) onHours(from, to, note);
+    onClose();
+  }
 
   return (
     <div className="fixed inset-0 z-40 flex flex-col bg-sand">
@@ -220,11 +229,10 @@ function DayView({ date, row, regular, onClose, onAllDay, onHours, onClear }: Da
       </header>
 
       <div className="border-b border-line bg-white px-4 py-2">
-        {allDay ? (
-          <div className="rounded-lg st-out px-3 py-2 text-sm font-medium">Busy all day{busyRow?.note ? ` · ${busyRow.note}` : ""}</div>
-        ) : (
-          <button onClick={() => { onAllDay(note); onClose(); }} className="w-full rounded-lg border border-[#c2463e] py-2 text-sm font-medium text-[#c2463e]">Busy all day</button>
-        )}
+        <div className="mx-auto grid max-w-xl grid-cols-2 rounded-lg bg-beige p-1 text-sm">
+          <button onClick={() => setMode("hours")} className={`rounded-md py-2 ${!allDay ? "bg-white font-semibold shadow-sm" : ""}`}>Busy certain hours</button>
+          <button onClick={() => setMode("allday")} className={`rounded-md py-2 ${allDay ? "bg-[#c2463e] font-semibold text-white" : ""}`}>Busy all day</button>
+        </div>
       </div>
 
       <div ref={scroller} className="relative flex-1 overflow-y-auto bg-white">
@@ -254,14 +262,14 @@ function DayView({ date, row, regular, onClose, onAllDay, onHours, onClear }: Da
 
       <footer className="border-t border-line bg-white px-4 py-3 space-y-2">
         <div className="mx-auto max-w-xl space-y-2">
-          <div className="flex items-center gap-2">
+          {!allDay && <div className="flex items-center gap-2">
             <input type="time" value={from} onChange={(e) => setFrom(e.target.value)} className="flex-1 rounded-lg border border-line px-2 py-2" aria-label="Busy from" />
             <span className="text-muted">–</span>
             <input type="time" value={to} onChange={(e) => setTo(e.target.value)} className="flex-1 rounded-lg border border-line px-2 py-2" aria-label="Busy until" />
-          </div>
+          </div>}
           <input value={note} onChange={(e) => setNote(e.target.value)} placeholder="Note (optional)" className="w-full rounded-lg border border-line px-3 py-2" />
           <div className="grid grid-cols-2 gap-2">
-            <button disabled={!validHours} onClick={() => { onHours(from, to, note); onClose(); }} className="rounded-lg bg-char py-2.5 font-semibold text-beige disabled:opacity-40">Save</button>
+            <button disabled={!canSave} onClick={save} className="rounded-lg bg-char py-2.5 font-semibold text-beige disabled:opacity-40">Save</button>
             <button disabled={!busyRow} onClick={() => { onClear(); onClose(); }} className="rounded-lg border border-line py-2.5 font-medium disabled:opacity-40">Clear day</button>
           </div>
         </div>
