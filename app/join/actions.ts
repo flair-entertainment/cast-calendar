@@ -59,6 +59,6 @@ export async function joinFlair(_: unknown, formData: FormData): Promise<R> {
     email,
     message: existing
       ? "You're already on the Flair list, so we've emailed you a login link and code."
-      : "You're signed up! We've emailed you a login link and a 6-digit code.",
+      : "You're signed up! We've emailed you a login link and an 8-digit code.",
   };
 }

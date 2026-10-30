@@ -32,11 +32,11 @@ export function LoginForm({ error }: { error?: string }) {
         </form>
       ) : (
         <div className="space-y-4">
-          <p className="rounded-lg bg-white p-3 text-sm">{sent.message} Tap the link in the email on this device. If the email has a 6-digit code, you can type it below instead.</p>
+          <p className="rounded-lg bg-white p-3 text-sm">{sent.message} Tap the link in the email on this device. If the email has an 8-digit code, you can type it below instead.</p>
           <form action={check} className="space-y-3">
             <input type="hidden" name="email" value={sent.email} />
-            <label className="block text-sm font-medium">6-digit code</label>
-            <input name="code" inputMode="numeric" autoComplete="one-time-code" required className={`${input} tracking-[0.4em] text-center text-xl`} maxLength={8} />
+            <label className="block text-sm font-medium">8-digit code</label>
+            <input name="code" inputMode="numeric" autoComplete="one-time-code" required className={`${input} tracking-[0.4em] text-center text-xl`} maxLength={10} />
             <button disabled={checking} className={button}>{checking ? "Checking…" : "Log in"}</button>
             {checked && !checked.ok && <p className="text-sm text-red-700">{checked.message}</p>}
           </form>

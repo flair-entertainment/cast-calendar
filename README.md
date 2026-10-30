@@ -70,7 +70,7 @@ Supabase's built-in email only sends a couple of emails an hour, so connect Rese
 **Performers can sign themselves up:** send the website address plus `/join` (e.g. `https://cast-calendar.vercel.app/join`) and the join code in the performer group chat. They fill in their own details and get in straight away. They show as **NEW** on the Cast list until a manager confirms them on their profile (tick **Confirmed**, then Save). New sign-ups aren't counted on the Overview until they're confirmed. If someone signs up who shouldn't have, untick **Active** on their profile to switch off their access. If the code gets passed round outside Flair, change `SIGNUP_CODE` in Vercel and redeploy.
 
 **Or managers can add people:**
-Managers: **Add cast** page, upload the spreadsheet (columns `full_name,email,phone,roles,location,skills`). Then send everyone the website address. They enter their email, get a link and a 6-digit code, and they're in. They stay logged in on that phone. Tell them to add it to their home screen (instructions are on their My details page).
+Managers: **Add cast** page, upload the spreadsheet (columns `full_name,email,phone,roles,location,skills`). Then send everyone the website address. They enter their email, get a link and an 8-digit code, and they're in. They stay logged in on that phone. Tell them to add it to their home screen (instructions are on their My details page).
 
 ## Removing the fake test data
 In Supabase SQL Editor run:

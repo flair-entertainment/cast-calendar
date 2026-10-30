@@ -20,8 +20,8 @@ export function JoinForm() {
         <p className="rounded-lg bg-white p-3 text-sm">{joined.message} Tap the link in the email, or type the code below.</p>
         <form action={check} className="space-y-3">
           <input type="hidden" name="email" value={joined.email} />
-          <label className="block text-sm font-medium">6-digit code</label>
-          <input name="code" inputMode="numeric" autoComplete="one-time-code" required maxLength={8} className={`${input} tracking-[0.4em] text-center text-xl`} />
+          <label className="block text-sm font-medium">8-digit code</label>
+          <input name="code" inputMode="numeric" autoComplete="one-time-code" required maxLength={10} className={`${input} tracking-[0.4em] text-center text-xl`} />
           <button disabled={checking} className={button}>{checking ? "Checking…" : "Log in"}</button>
           {checked && !checked.ok && <p className="text-sm text-red-700">{checked.message}</p>}
         </form>

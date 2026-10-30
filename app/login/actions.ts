@@ -6,7 +6,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 
 const clean = (e: string) => e.trim().toLowerCase();
 
-// Step 1: send a login email (link + 6-digit code).
+// Step 1: send a login email (link + 8-digit code).
 // Invite-only: we only send if the email is on the cast list or is a manager.
 // We always show the same message so nobody can find out who is on the roster.
 export async function sendLoginEmail(_: unknown, formData: FormData) {
@@ -32,10 +32,10 @@ export async function sendLoginEmail(_: unknown, formData: FormData) {
       return { ok: false, message: "Too many login emails just now. Please wait a minute and try again." };
     }
   }
-  return { ok: true, email, message: "If you're on the Flair roster, you'll get an email with a login link and a 6-digit code." };
+  return { ok: true, email, message: "If you're on the Flair roster, you'll get an email with a login link and an 8-digit code." };
 }
 
-// Step 2 (optional): type the 6-digit code instead of clicking the link.
+// Step 2 (optional): type the 8-digit code instead of clicking the link.
 export async function verifyCode(_: unknown, formData: FormData) {
   const email = clean(String(formData.get("email") ?? ""));
   const token = String(formData.get("code") ?? "").replace(/\s/g, "");
