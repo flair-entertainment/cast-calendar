@@ -24,6 +24,8 @@ export async function setDays(dates: string[], status: Status | null, note?: str
       date,
       status,
       note: note?.trim().slice(0, 200) || null,
+      start_time: null,
+      end_time: null,
       updated_at: new Date().toISOString(),
     }));
     const { error } = await supabase.from("availability").upsert(rows, { onConflict: "cast_member_id,date" });
@@ -31,6 +33,27 @@ export async function setDays(dates: string[], status: Status | null, note?: str
   }
   // No page refresh needed: the calendar already shows the change, which keeps taps fast.
   return { ok: true };
+}
+
+// Mark one day busy: the whole day (no times) or just between two times.
+export async function setBusy(date: string, start: string | null, end: string | null, note?: string) {
+  const { supabase, member } = await requireCast();
+  if (!isDate(date)) return { ok: false };
+  const timed = Boolean(start && end);
+  if (timed && (!isTime(start!) || !isTime(end!) || end! <= start!)) return { ok: false };
+  const { error } = await supabase.from("availability").upsert(
+    {
+      cast_member_id: member.id,
+      date,
+      status: "unavailable",
+      start_time: timed ? start : null,
+      end_time: timed ? end : null,
+      note: note?.trim().slice(0, 200) || null,
+      updated_at: new Date().toISOString(),
+    },
+    { onConflict: "cast_member_id,date" },
+  );
+  return { ok: !error };
 }
 
 export async function addWeek(formData: FormData) {

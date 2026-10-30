@@ -2,11 +2,11 @@
 
 import Link from "next/link";
 import { useMemo, useState } from "react";
-import { DOW, cellFor, fmtMin, monthLabel, shortDate, weekday } from "@/lib/availability";
+import { DOW, cellFor, fmtMin, hhmm, monthLabel, shortDate, toMin, weekday } from "@/lib/availability";
 import type { PersonData } from "./CompareGrid";
 
-// Google Calendar-style week: days across, hours down. Each half-hour shows how many
-// of the selected people are free; tap it to see who.
+// Google Calendar-style week: days across, hours down. Each person has a strip in every
+// day: green where they're free, red (with their name) where they're busy.
 const START = 8 * 60; // 08:00
 const END = 23 * 60; // 23:00
 const STEP = 30;
@@ -42,26 +42,32 @@ export function WeekView({ ids, days, people, today, nav }: Props) {
     [days, shown],
   );
 
-  const shade = (free: number) => {
-    if (!N) return "bg-white";
-    if (free === N) return "st-confirmed";
-    const r = free / N;
-    return r >= 0.5 ? "bg-[#cfe9d8]" : r > 0 ? "bg-amber-100" : "bg-red-100";
-  };
 
   const link = (start: string, span = "week") => `/admin/compare?ids=${ids.join(",")}&span=${span}&start=${start}`;
   const months = [...new Set(days.map((d) => d.slice(0, 7)))].map(monthLabel).join(" / ");
 
-  // All-day row: people marked unavailable or maybe for the whole day.
-  const allDay = days.map((d) =>
-    shown.flatMap((p) => {
-      const r = p.rows[d];
-      if (!r || r.status === "available" || r.start_time) return [];
-      return [{ name: p.name, st: r.status, note: r.note }];
-    }),
-  );
 
   const picked = pick ? grid[pick.d][SLOTS.indexOf(pick.s)] : null;
+
+  // Busy blocks per day: part-day marks (red/amber) and regular week (grey), one lane per person.
+  const lanes = Math.max(1, shown.length);
+  const blocks = days.map((d) =>
+    shown.flatMap((p, lane) => {
+      const who = p.name.split(" ")[0];
+      const out: { s: number; e: number; kind: "busy" | "maybe" | "regular"; label: string; who: string; lane: number }[] = [];
+      const r = p.rows[d];
+      if (r && r.status !== "available" && r.start_time && r.end_time) {
+        out.push({ s: toMin(r.start_time), e: toMin(r.end_time), kind: r.status === "maybe" ? "maybe" : "busy", label: `${hhmm(r.start_time)}–${hhmm(r.end_time)}${r.note ? ` ${r.note}` : ""}`, who, lane });
+      }
+      if (r && r.status !== "available" && !r.start_time) {
+        out.push({ s: START, e: END, kind: r.status === "maybe" ? "maybe" : "busy", label: r.note || "All day", who, lane });
+      } else {
+        for (const w of p.weeks) if (w.days.includes(weekday(d))) out.push({ s: toMin(w.start_time), e: toMin(w.end_time), kind: "regular", label: w.note || "", who, lane });
+      }
+      // Draw regular commitments first so busy marks sit on top.
+      return out.sort((x, y) => (x.kind === "regular" ? 0 : 1) - (y.kind === "regular" ? 0 : 1));
+    }),
+  );
 
   return (
     <div>
@@ -137,39 +143,52 @@ export function WeekView({ ids, days, people, today, nav }: Props) {
                 </div>
               ))}
 
-              {/* All-day row (holidays etc.) */}
-              <div className="border-b border-line" />
-              {allDay.map((list, i) => (
-                <div key={i} className="border-b border-l border-line p-1 space-y-0.5 min-h-8">
-                  {list.map((x) => (
-                    <div key={x.name} className={`truncate rounded px-1.5 py-0.5 text-[11px] ${x.st === "unavailable" ? "st-out" : "st-maybe"}`} title={`${x.name}: ${x.st === "unavailable" ? "Unavailable" : "Maybe"}${x.note ? ` (${x.note})` : ""}`}>
-                      {x.name.split(" ")[0]}{x.note ? ` · ${x.note}` : ""}
-                    </div>
-                  ))}
-                </div>
-              ))}
-
-              {/* Time grid */}
-              {SLOTS.map((s, si) => (
-                <div key={s} className="contents">
-                  <div className="relative border-line pr-1 text-right text-[10px] text-muted" style={{ height: ROW }}>
-                    {s % 60 === 0 && <span className="relative -top-1.5">{fmtMin(s)}</span>}
-                  </div>
-                  {days.map((d, di) => {
-                    const cell = grid[di][si];
-                    const free = cell.filter((x) => x.st === "free").length;
+              {/* Time grid: hour labels, then one column per day with busy blocks on top */}
+              <div className="relative" style={{ height: SLOTS.length * ROW }}>
+                {SLOTS.filter((s) => s % 60 === 0).map((s) => (
+                  <span key={s} className={`absolute right-1 text-[10px] text-muted ${s === START ? "" : "-translate-y-1.5"}`} style={{ top: (s - START) / STEP * ROW }}>{fmtMin(s)}</span>
+                ))}
+              </div>
+              {days.map((d, di) => (
+                <div key={d} className="relative border-l border-line" style={{ height: SLOTS.length * ROW }}>
+                  {SLOTS.map((s, si) => {
+                    const free = grid[di][si].filter((x) => x.st === "free").length;
                     const active = pick && pick.d === di && pick.s === s;
                     return (
                       <button
-                        key={d}
+                        key={s}
                         onClick={() => setPick({ d: di, s })}
                         title={`${shortDate(d)} ${fmtMin(s)}: ${free} of ${N} free`}
-                        className={`border-l border-line ${s % 60 === 0 ? "border-t border-t-line" : "border-t border-t-line/40"} ${shade(free)} ${active ? "outline outline-2 -outline-offset-2 outline-char" : ""} text-[10px]`}
-                        style={{ height: ROW }}
-                      >
-                      </button>
+                        className={`absolute inset-x-0 z-10 ${s % 60 === 0 ? "border-t border-t-black/10" : ""} ${active ? "outline outline-2 -outline-offset-2 outline-char" : ""}`}
+                        style={{ top: si * ROW, height: ROW }}
+                      />
                     );
                   })}
+                  {/* One strip per person: green = free */}
+                  {shown.map((p, lane) => (
+                    <div
+                      key={p.id}
+                      className="pointer-events-none absolute top-0 bottom-0 overflow-hidden rounded bg-[#d7ecdf] px-1 pt-0.5 text-[10px] font-semibold text-[#1d5c3a]"
+                      style={{ left: `calc(${(lane / lanes) * 100}% + 2px)`, width: `calc(${100 / lanes}% - 4px)` }}
+                    >
+                      {p.name.split(" ")[0]}
+                    </div>
+                  ))}
+                  {/* Busy times on top: red, with the name */}
+                  {blocks[di].map((bl, i) => (
+                    <div
+                      key={i}
+                      className="pointer-events-none absolute overflow-hidden rounded bg-[#c2463e] px-1 py-0.5 text-[10px] leading-tight text-white"
+                      style={{
+                        top: (Math.max(bl.s, START) - START) / STEP * ROW + 1,
+                        height: Math.max(ROW - 2, (Math.min(bl.e, END) - Math.max(bl.s, START)) / STEP * ROW - 2),
+                        left: `calc(${(bl.lane / lanes) * 100}% + 2px)`,
+                        width: `calc(${100 / lanes}% - 4px)`,
+                      }}
+                    >
+                      <span className="font-semibold">{bl.who}</span> {bl.kind === "maybe" ? "Maybe " : ""}{bl.label}
+                    </div>
+                  ))}
                 </div>
               ))}
             </div>

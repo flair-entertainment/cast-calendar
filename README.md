@@ -10,11 +10,11 @@ Flair's performer availability system.
 
 | Who | Page | What it does |
 |---|---|---|
-| Performers | My availability | Month calendar. Tap a day to cycle: can't do, maybe, free, blank. "Set several days at once" for holidays. |
+| Performers | My availability | Month calendar; blank = free. Tap a day to open it hour by hour (like Google Calendar) and mark busy all day or certain hours. "Holiday or several days" marks a run of days. |
 | Performers | My regular week | Repeating commitments, e.g. day job Mon-Fri 09:00-17:00. |
 | Performers | My details | Name, phone, location, skills. |
 | Managers | Cast list | Where managers start. Tick the people you want (click anywhere on their row), then press Compare. Search by name; role, location, skill, active, out-of-date and new sign-up filters are under "Filters". |
-| Managers | Compare | Opens on a Google Calendar-style week (days across, hours down; greener = more free, solid green = everyone free; tap a time to see who). Untick people on the left to leave them out. 2 weeks and Month switch to the day grid: bold month header, one row per person, one column per day (2 weeks or a month), count of who's free on top. Toggle at the top: Any time, Daytime, Evenings or Custom hours. Tap a square for the reason, or a date for everyone that day. |
+| Managers | Compare | Opens on a Google Calendar-style week: days across, hours down, a strip per person in each day, green where free and red (with name and reason) where busy. Tap a time to see who's free. Untick people on the left to leave them out. 2 weeks and Month switch to the day grid: bold month header, one row per person, one column per day (2 weeks or a month), count of who's free on top. Toggle at the top: Any time, Daytime, Evenings or Custom hours. Tap a square for the reason, or a date for everyone that day. |
 | Managers | Cast profile | One person's details, regular week, upcoming dates and when they last updated. Managers can change roles, location and active here. |
 | Managers | Add cast | Upload a spreadsheet (CSV) to add or update cast in one go. They can log in straight away. |
 

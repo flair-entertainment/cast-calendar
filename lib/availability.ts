@@ -118,33 +118,51 @@ export function cellFor(
   week: WeekRow[],
   win: { s: number; e: number },
 ): Cell {
-  if (row) {
-    const note = row.note ? `: ${row.note}` : "";
-    const time = row.start_time && row.end_time ? ` (${hhmm(row.start_time)} to ${hhmm(row.end_time)})` : "";
-    if (row.status === "unavailable") return { st: "out", why: `Unavailable${time}${note}` };
-    if (row.status === "maybe") return { st: "maybe", why: `Maybe${time}${note}` };
-    return { st: "confirmed", why: `Confirmed available${time}${note}` };
+  const timed = Boolean(row?.start_time && row?.end_time);
+  const note = row?.note ? `: ${row.note}` : "";
+  // A whole-day mark decides the day outright.
+  if (row && !timed) {
+    if (row.status === "unavailable") return { st: "out", why: `Unavailable${note}` };
+    if (row.status === "maybe") return { st: "maybe", why: `Maybe${note}` };
+    return { st: "confirmed", why: `Confirmed available${note}` };
   }
+
+  // Otherwise work out which part of the time needed is taken by
+  // a part-day mark (e.g. busy 14:00-18:00) and/or their regular week.
+  const blocks: { s: number; e: number; label: string }[] = [];
+  if (row && timed && row.status === "unavailable") {
+    blocks.push({ s: toMin(row.start_time!), e: toMin(row.end_time!), label: `Busy ${hhmm(row.start_time!)}-${hhmm(row.end_time!)}${note}` });
+  }
+  const wd = weekday(date);
+  for (const r of week) if (r.days.includes(wd)) blocks.push({ s: toMin(r.start_time), e: toMin(r.end_time), label: r.note || "Regular commitment" });
+
   let free: [number, number][] = [[win.s, win.e]];
   const clashes = new Set<string>();
-  const wd = weekday(date);
-  for (const r of week) {
-    if (!r.days.includes(wd)) continue;
-    const rs = toMin(r.start_time), re = toMin(r.end_time);
+  for (const bl of blocks) {
     const next: [number, number][] = [];
     let hit = false;
     for (const [a, b] of free) {
-      if (re <= a || rs >= b) { next.push([a, b]); continue; }
+      if (bl.e <= a || bl.s >= b) { next.push([a, b]); continue; }
       hit = true;
-      if (rs > a) next.push([a, rs]);
-      if (re < b) next.push([re, b]);
+      if (bl.s > a) next.push([a, bl.s]);
+      if (bl.e < b) next.push([bl.e, b]);
     }
-    if (hit) clashes.add(r.note || "Regular commitment");
+    if (hit) clashes.add(bl.label);
     free = next;
   }
-  if (!clashes.size) return { st: "free", why: "" };
+
+  // A part-day "maybe" that overlaps the time needed makes it a maybe.
+  if (row && timed && row.status === "maybe") {
+    const ms = toMin(row.start_time!), me = toMin(row.end_time!);
+    if (free.some(([a, b]) => ms < b && me > a)) return { st: "maybe", why: `Maybe ${hhmm(row.start_time!)}-${hhmm(row.end_time!)}${note}` };
+  }
+
+  if (!clashes.size) {
+    if (row && timed && row.status === "available") return { st: "confirmed", why: `Confirmed available${note}` };
+    return { st: "free", why: "" };
+  }
   const label = [...clashes].join(", ");
-  if (!free.length) return { st: "out", why: `Regular week: ${label}` };
+  if (!free.length) return { st: "out", why: label.startsWith("Busy") ? label : `Regular week: ${label}` };
   return { st: "part", why: `Only free ${free.map(([a, b]) => `${fmtMin(a)} to ${fmtMin(b)}`).join(", ")} (${label})` };
 }
 
