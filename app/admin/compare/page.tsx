@@ -1,10 +1,13 @@
 import Link from "next/link";
 import { AdminNav } from "@/components/AdminNav";
 import { requireAdmin } from "@/lib/auth";
-import { addDays, monthDays, range, shiftMonth, todayLondon, type AvailabilityRow, type WeekRow } from "@/lib/availability";
+import { addDays, monthDays, range, shiftMonth, todayLondon, weekday, type AvailabilityRow, type WeekRow } from "@/lib/availability";
 import { describe, type WindowKey } from "@/lib/config";
 import { getAvailability, getCast, getWeeks } from "@/lib/data";
 import { CompareGrid, type PersonData } from "./CompareGrid";
+import { WeekView } from "./WeekView";
+
+const mondayOf = (d: string) => addDays(d, -((weekday(d) + 6) % 7));
 
 type SP = { ids?: string; start?: string; span?: string; win?: string; cs?: string; ce?: string; all?: string };
 const UUID = /^[0-9a-f-]{36}$/i;
@@ -16,9 +19,11 @@ export default async function Compare({ searchParams }: { searchParams: Promise<
   const sp = await searchParams;
   const ids = (sp.ids ?? "").split(",").filter((x) => UUID.test(x)).slice(0, 150);
   const today = todayLondon();
-  const span = sp.span === "month" ? "month" : "2w";
-  const start = sp.start && /^\d{4}-\d{2}-\d{2}$/.test(sp.start) ? sp.start : today;
-  const days = span === "month" ? monthDays(start.slice(0, 7)) : range(start, 14);
+  // Default view is a Google Calendar-style week.
+  const span = sp.span === "month" ? "month" : sp.span === "2w" ? "2w" : "week";
+  const rawStart = sp.start && /^\d{4}-\d{2}-\d{2}$/.test(sp.start) ? sp.start : today;
+  const start = span === "week" ? mondayOf(rawStart) : rawStart;
+  const days = span === "month" ? monthDays(start.slice(0, 7)) : range(start, span === "week" ? 7 : 14);
   const winKey = (["full", "day", "eve", "custom"].includes(sp.win ?? "") ? sp.win : "full") as WindowKey;
 
   if (!ids.length) {
@@ -54,6 +59,17 @@ export default async function Compare({ searchParams }: { searchParams: Promise<
     today: span === "month" ? `${today.slice(0, 7)}-01` : today,
     monthStart: `${start.slice(0, 7)}-01`,
   };
+
+  if (span === "week") {
+    return (
+      <>
+        <AdminNav active="/admin/compare" />
+        <main className="mx-auto max-w-[1600px] px-4 py-6">
+          <WeekView ids={ids} days={days} people={people} today={today} nav={{ prev: addDays(start, -7), next: addDays(start, 7), today: mondayOf(today) }} />
+        </main>
+      </>
+    );
+  }
 
   return (
     <>

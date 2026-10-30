@@ -94,6 +94,7 @@ export function CompareGrid({ ids, days, people: data, today, span, nav, initial
           <Link href={query({ start: nav.today })} className="rounded-lg border border-line bg-white px-3 py-2 text-sm">Today</Link>
           <Link href={query({ start: nav.next })} className="rounded-lg border border-line bg-white px-3 py-2">Later ›</Link>
           <div className="flex rounded-lg bg-beige p-0.5 text-sm">
+            <Link href={query({ span: "week", start: days[0] })} className="px-3 py-1.5 rounded-md">Week</Link>
             <Link href={query({ span: "2w", start: days[0] })} className={`px-3 py-1.5 rounded-md ${span === "2w" ? "bg-white font-medium" : ""}`}>2 weeks</Link>
             <Link href={query({ span: "month", start: nav.monthStart })} className={`px-3 py-1.5 rounded-md ${span === "month" ? "bg-white font-medium" : ""}`}>Month</Link>
           </div>
