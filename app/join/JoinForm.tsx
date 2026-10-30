@@ -3,23 +3,39 @@
 import Link from "next/link";
 import { useActionState } from "react";
 import { LOCATIONS, ROLES, cap } from "@/lib/config";
-import { verifyCode } from "../login/actions";
+import { sendLoginEmail, verifyCode } from "../login/actions";
 import { joinFlair } from "./actions";
+import { useCountdown } from "@/lib/useCountdown";
 
-type State = { ok: boolean; message: string; email?: string } | null;
+type State = { ok: boolean; message: string; email?: string; wait?: number } | null;
 
 export function JoinForm() {
   const [joined, join, joining] = useActionState<State, FormData>(joinFlair, null);
   const [checked, check, checking] = useActionState<State, FormData>(verifyCode, null);
+  const [resent, resend, resending] = useActionState<State, FormData>(sendLoginEmail, null);
+  const left = useCountdown(resent?.wait ?? joined?.wait, resent ?? joined);
   const input = "mt-1 w-full rounded-lg border border-line bg-white px-3 py-3 text-base text-ink";
   const button = "w-full rounded-lg bg-char py-3 font-semibold text-beige disabled:opacity-60";
 
-  if (joined?.ok) {
+  // Signed up, but the email was blocked for a moment: count down, then send the code.
+  if (joined?.wait && !resent?.ok) {
+    return (
+      <form action={resend} className="space-y-3">
+        <p className="rounded-lg bg-white p-3 text-sm">Your details are saved.{left > 0 ? ` Please wait ${left}s, then press Send my code.` : ""}</p>
+        <input type="hidden" name="email" value={joined.email} />
+        <button disabled={resending || left > 0} className={button}>{resending ? "Sending…" : left > 0 ? `Please wait ${left}s` : "Send my code"}</button>
+        {resent && !resent.ok && !resent.wait && <p className="text-sm text-red-700">{resent.message}</p>}
+      </form>
+    );
+  }
+
+  const done = joined?.ok ? joined : resent?.ok ? { ...resent, message: "We've emailed you an 8-digit login code." } : null;
+  if (done) {
     return (
       <div className="space-y-4">
-        <p className="rounded-lg bg-white p-3 text-sm">{joined.message} Type it below.</p>
+        <p className="rounded-lg bg-white p-3 text-sm">{done.message} Type it below.</p>
         <form action={check} className="space-y-3">
-          <input type="hidden" name="email" value={joined.email} />
+          <input type="hidden" name="email" value={done.email} />
           <label className="block text-sm font-medium">8-digit code</label>
           <input name="code" inputMode="numeric" autoComplete="one-time-code" required maxLength={10} className={`${input} tracking-[0.4em] text-center text-xl`} />
           <button disabled={checking} className={button}>{checking ? "Checking…" : "Log in"}</button>

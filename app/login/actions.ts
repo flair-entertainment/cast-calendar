@@ -3,6 +3,7 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { waitSeconds } from "@/lib/waitSeconds";
 
 const clean = (e: string) => e.trim().toLowerCase();
 
@@ -30,7 +31,7 @@ export async function sendLoginEmail(_: unknown, formData: FormData) {
     });
     if (error) {
       console.error("login: email failed", error.status, error.message);
-      if (error.status === 429) return { ok: false, message: "Too many login emails just now. Please wait a minute and try again." };
+      if (error.status === 429) return { ok: false, wait: waitSeconds(error.message), message: "" };
       return { ok: false, message: "The login email didn't send. Please try again in a minute." };
     }
   }

@@ -2,13 +2,14 @@
 
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { waitSeconds } from "@/lib/waitSeconds";
 import { LOCATIONS, ROLES } from "@/lib/config";
 
 const roles = ROLES as readonly string[];
 const locations = LOCATIONS as readonly string[];
 const norm = (s: string) => s.trim().toLowerCase().replace(/\s+/g, "");
 
-type R = { ok: boolean; message: string; email?: string };
+type R = { ok: boolean; message: string; email?: string; wait?: number };
 
 // A performer signs themselves up. They need the Flair join code (shared in the
 // performer group chat). They get access straight away, and show as "New" to
@@ -53,7 +54,7 @@ export async function joinFlair(_: unknown, formData: FormData): Promise<R> {
   });
   if (error) {
     console.error("join: login email failed", error.status, error.message);
-    if (error.status === 429) return { ok: false, message: "Too many emails just now. Your details are saved: wait a minute, then log in from the login page." };
+    if (error.status === 429) return { ok: false, email, wait: waitSeconds(error.message), message: "" };
     return { ok: false, message: "Your details are saved, but the login email didn't send. Please try again from the login page in a minute." };
   }
   return {
