@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useState } from "react";
+import { useActionState, useEffect, useState } from "react";
 import { sendLoginEmail, verifyCode } from "./actions";
 import { useCountdown } from "@/lib/useCountdown";
 
@@ -11,6 +11,11 @@ export function LoginForm({ error }: { error?: string }) {
   const [checked, check, checking] = useActionState<State, FormData>(verifyCode, null);
   const left = useCountdown(sent?.wait, sent);
   const [email, setEmail] = useState("");
+  // Fill in the email used last time on this device.
+  useEffect(() => {
+    try { setEmail(localStorage.getItem("cc-email") ?? ""); } catch {}
+  }, []);
+  const remember = () => { try { localStorage.setItem("cc-email", email.trim()); } catch {} };
 
   const input = "w-full rounded-lg border border-line bg-white px-3 py-3 text-base";
   const button = "w-full rounded-lg bg-char py-3 font-semibold text-beige disabled:opacity-60";
@@ -27,16 +32,17 @@ export function LoginForm({ error }: { error?: string }) {
         <p className="rounded-lg bg-beige p-3 text-sm">That link needs to be opened on the same phone or computer you requested it from. Enter your email below to get a new one, then open the email on this device.</p>
       )}
       {!sent?.ok ? (
-        <form action={send} className="space-y-3">
+        <form action={send} onSubmit={remember} className="space-y-3">
           <label className="block text-sm font-medium">Your email</label>
           <input name="email" type="email" autoComplete="email" required value={email} onChange={(e) => setEmail(e.target.value)} className={input} placeholder="you@example.com" />
           <button disabled={sending || left > 0} className={button}>{sending ? "Sending…" : left > 0 ? `Please wait ${left}s` : "Email me a code"}</button>
           {left > 0 && <p className="text-sm text-red-700">Please wait {left}s before asking for another code. Check your inbox: the last code still works.</p>}
           {sent && !sent.ok && !sent.wait && <p className="text-sm text-red-700">{sent.message}</p>}
+          <p className="pt-2 text-center text-sm">Not signed up yet? <a href="/join" className="underline font-medium">Sign up here</a></p>
         </form>
       ) : (
         <div className="space-y-4">
-          <p className="rounded-lg bg-white p-3 text-sm">{sent.message} Type it below.</p>
+          <p className="rounded-lg bg-white p-3 text-sm">Check <b>{sent.email}</b> for an 8-digit code. Not there? Check junk.</p>
           <form action={check} className="space-y-3">
             <input type="hidden" name="email" value={sent.email} />
             <label className="block text-sm font-medium">8-digit code</label>
@@ -44,8 +50,10 @@ export function LoginForm({ error }: { error?: string }) {
             <button disabled={checking} className={button}>{checking ? "Checking…" : "Log in"}</button>
             {checked && !checked.ok && <p className="text-sm text-red-700">{checked.message}</p>}
           </form>
-          <p className="text-sm text-muted">Not in your inbox? Check junk. No email after 2 minutes? You may need to <a href="/join" className="underline font-medium text-ink">sign up first</a>.</p>
-          <button onClick={() => location.reload()} className="text-sm underline text-muted">Use a different email</button>
+          <div className="flex justify-between text-sm text-muted">
+            <button onClick={() => location.reload()} className="underline">Different email</button>
+            <a href="/join" className="underline">Not signed up?</a>
+          </div>
         </div>
       )}
     </div>

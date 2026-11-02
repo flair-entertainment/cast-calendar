@@ -47,7 +47,11 @@ export function JoinForm() {
   }
 
   return (
-    <form action={join} className="space-y-3">
+    <form
+      action={join}
+      onSubmit={(e) => { try { localStorage.setItem("cc-email", String(new FormData(e.currentTarget).get("email") ?? "").trim()); } catch {} }}
+      className="space-y-3"
+    >
       <label className="block text-xs text-muted">Flair join code (from the performer group chat)
         <input name="code" required autoComplete="off" className={input} />
       </label>

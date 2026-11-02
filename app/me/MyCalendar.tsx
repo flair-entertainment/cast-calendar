@@ -1,11 +1,10 @@
 "use client";
 
 import { useEffect, useRef, useState, useTransition } from "react";
-import { createClient } from "@/lib/supabase/client";
 import { Saved } from "@/components/Saved";
 import { addDays, daysBetween, fmtMin, hhmm, monthDays, monthLabel, shiftMonth, toMin, ukDate, weekday, type WeekRow } from "@/lib/availability";
 import type { Status } from "@/lib/config";
-import { setBusy, setDays } from "./actions";
+import { getMonth, setBusy, setDays } from "./actions";
 
 // Blank = free. Performers only mark when they're busy (whole day, or certain hours).
 type Row = { date: string; status: Status; note: string | null; start_time: string | null; end_time: string | null };
@@ -14,9 +13,9 @@ const DAY_NAMES = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Frid
 const MONTH_NAMES = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
 const longDate = (d: string) => `${DAY_NAMES[weekday(d)]} ${Number(d.slice(8))} ${MONTH_NAMES[Number(d.slice(5, 7)) - 1]}`;
 
-type Props = { memberId: string; month: string; today: string; rows: Row[]; weeks: WeekRow[] };
+type Props = { memberId?: string; month: string; today: string; rows: Row[]; weeks: WeekRow[] };
 
-export function MyCalendar({ memberId, month: startMonth, today, rows, weeks }: Props) {
+export function MyCalendar({ month: startMonth, today, rows, weeks }: Props) {
   const [map, setMap] = useState(() => new Map(rows.map((r) => [r.date, r])));
   const [month, setMonth] = useState(startMonth);
   const [loading, setLoading] = useState(false);
@@ -35,16 +34,11 @@ export function MyCalendar({ memberId, month: startMonth, today, rows, weeks }: 
     if (loaded.current.has(m)) return;
     loaded.current.add(m);
     const days = monthDays(m);
-    const { data, error } = await createClient()
-      .from("availability")
-      .select("date, status, note, start_time, end_time")
-      .eq("cast_member_id", memberId)
-      .gte("date", days[0])
-      .lte("date", days[days.length - 1]);
-    if (error) { loaded.current.delete(m); return; }
+    const data = await getMonth(days[0], days[days.length - 1]).catch(() => null);
+    if (!data) { loaded.current.delete(m); return; }
     setMap((old) => {
       const next = new Map(old);
-      (data ?? []).forEach((r) => { if (!next.has(r.date)) next.set(r.date, r as Row); });
+      data.forEach((r) => { if (!next.has(r.date)) next.set(r.date, r as Row); });
       return next;
     });
   }
