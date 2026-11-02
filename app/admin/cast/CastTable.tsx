@@ -2,7 +2,8 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useTransition } from "react";
+import { confirmCast } from "../actions";
 import { isStale, ukDate } from "@/lib/availability";
 import { LOCATIONS, ROLES, STALE_DAYS, cap, locationLabel, rolesLabel } from "@/lib/config";
 import type { CastMember } from "@/lib/data";
@@ -20,6 +21,8 @@ export function CastTable({ cast, today, startNewOnly = false }: { cast: CastMem
   const [newOnly, setNewOnly] = useState(startNewOnly);
   const [showFilters, setShowFilters] = useState(startNewOnly);
   const [sel, setSel] = useState<Set<string>>(new Set());
+  const [confirming, startConfirm] = useTransition();
+  const [confirmError, setConfirmError] = useState("");
 
   // Remember the selection while moving between pages (this browser only).
   useEffect(() => {
@@ -48,14 +51,29 @@ export function CastTable({ cast, today, startNewOnly = false }: { cast: CastMem
   const allFilteredSelected = filtered.length > 0 && filtered.every((c) => sel.has(c.id));
   const ctl = "rounded-lg border border-line bg-white px-2.5 py-1.5 text-sm";
 
-  const newCount = cast.filter((c) => !c.confirmed).length;
+  const newPeople = cast.filter((c) => !c.confirmed);
+  const newCount = newPeople.length;
+  const selectedNew = newPeople.filter((c) => sel.has(c.id)).map((c) => c.id);
+  function confirmSelected() {
+    setConfirmError("");
+    startConfirm(async () => {
+      const res = await confirmCast(selectedNew).catch(() => ({ ok: false }));
+      if (!res.ok) return setConfirmError("Couldn't confirm. Try again.");
+      setSel((old) => { const s = new Set(old); selectedNew.forEach((id) => s.delete(id)); return s; });
+      setNewOnly(false);
+      router.refresh();
+    });
+  }
   const filtersOn = Boolean(role || loc || skill || active !== "active" || staleOnly || newOnly);
 
   return (
     <div className="pb-24">
       {newCount > 0 && !newOnly && (
-        <button onClick={() => { setNewOnly(true); setShowFilters(true); }} className="mb-3 w-full rounded-lg bg-char text-beige px-4 py-3 text-left text-sm">
-          <b>{newCount} new sign-up{newCount === 1 ? "" : "s"} to confirm.</b> Click to see them, then open each profile and tick Confirmed. →
+        <button
+          onClick={() => { setNewOnly(true); setShowFilters(true); setSel(new Set(newPeople.map((c) => c.id))); }}
+          className="mb-3 w-full rounded-lg bg-char text-beige px-4 py-3 text-left text-sm"
+        >
+          <b>{newCount} new sign-up{newCount === 1 ? "" : "s"} to confirm.</b> Select them all →
         </button>
       )}
 
@@ -104,10 +122,20 @@ export function CastTable({ cast, today, startNewOnly = false }: { cast: CastMem
       <div className="fixed inset-x-0 bottom-0 z-20 border-t border-line bg-sand/95 backdrop-blur">
         <div className="mx-auto max-w-7xl px-4 py-3 flex items-center gap-3">
           <span className="text-sm"><b>{sel.size}</b> selected</span>
+          {confirmError && <span className="text-sm text-red-700">{confirmError}</span>}
+          {selectedNew.length > 0 && (
+            <button
+              disabled={confirming}
+              onClick={confirmSelected}
+              className="ml-auto rounded-lg border border-char bg-white px-5 py-2.5 font-semibold disabled:opacity-40"
+            >
+              {confirming ? "Confirming…" : `Confirm ${selectedNew.length} new`}
+            </button>
+          )}
           <button
             disabled={!sel.size}
             onClick={() => router.push(`/admin/compare?ids=${[...sel].join(",")}`)}
-            className="ml-auto rounded-lg bg-char text-beige px-6 py-2.5 font-semibold disabled:opacity-40"
+            className={`${selectedNew.length ? "" : "ml-auto "}rounded-lg bg-char text-beige px-6 py-2.5 font-semibold disabled:opacity-40`}
           >
             Compare {sel.size ? `${sel.size} ` : ""}→
           </button>
