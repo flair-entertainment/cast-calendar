@@ -42,17 +42,18 @@ export function LoginForm({ error }: { error?: string }) {
         </form>
       ) : (
         <div className="space-y-4">
+          <p className="rounded-lg bg-white p-3 text-sm">Check <b>{sent.email}</b> for an 8-digit code.</p>
           <form action={check} className="space-y-3">
             <input type="hidden" name="email" value={sent.email} />
             <label className="block text-sm font-medium">8-digit code</label>
             <input name="code" inputMode="numeric" autoComplete="one-time-code" required className={`${input} tracking-[0.4em] text-center text-xl`} maxLength={10} />
-            <p className="rounded-lg bg-white p-3 text-sm">Check <b>{sent.email}</b> for an 8-digit code. Not there? Check junk.</p>
             <button disabled={checking} className={button}>{checking ? "Checking…" : "Log in"}</button>
             {checked && !checked.ok && <p className="text-sm text-red-700">{checked.message}</p>}
           </form>
-          <div className="flex justify-between text-sm text-muted">
-            <button onClick={() => location.reload()} className="underline">Different email</button>
-            <a href="/join" className="underline">Not signed up?</a>
+          <div className="space-y-1 text-sm text-muted">
+            <p>Not in your inbox? Check junk.</p>
+            <p>No email after 2 minutes? You may need to <a href="/join" className="underline font-medium text-ink">sign up first</a>.</p>
+            <div className="pt-1 text-right"><button onClick={() => location.reload()} className="underline">Use a different email</button></div>
           </div>
         </div>
       )}
