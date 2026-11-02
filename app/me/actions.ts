@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { requireCast } from "@/lib/auth";
+import { getRehearsals } from "@/lib/data";
 import { STATUSES, LOCATIONS, type Status } from "@/lib/config";
 
 const isDate = (s: string) => /^\d{4}-\d{2}-\d{2}$/.test(s);
@@ -96,16 +97,19 @@ export async function saveDetails(formData: FormData) {
   return { ok: true, message: "Saved" };
 }
 
-// Load one month of the performer's own dates (runs on the server so the login
-// stays refreshed by the server, which iPhones keep for much longer).
+// Load one month of the performer's own dates and rehearsals (runs on the server so the
+// login stays refreshed by the server, which iPhones keep for much longer).
 export async function getMonth(from: string, to: string) {
   if (!isDate(from) || !isDate(to)) return null;
   const { supabase, member } = await requireCast();
-  const { data, error } = await supabase
-    .from("availability")
-    .select("date, status, note, start_time, end_time")
-    .eq("cast_member_id", member.id)
-    .gte("date", from)
-    .lte("date", to);
-  return error ? null : data;
+  const [{ data, error }, rehearsals] = await Promise.all([
+    supabase
+      .from("availability")
+      .select("date, status, note, start_time, end_time")
+      .eq("cast_member_id", member.id)
+      .gte("date", from)
+      .lte("date", to),
+    getRehearsals(supabase, from, to),
+  ]);
+  return error ? null : { rows: data, rehearsals };
 }

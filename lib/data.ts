@@ -1,6 +1,6 @@
 import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
-import type { AvailabilityRow, WeekRow } from "@/lib/availability";
+import type { AvailabilityRow, Rehearsal, WeekRow } from "@/lib/availability";
 
 // Supabase returns at most 1,000 rows per request, so read in pages.
 async function pages<T>(fetchPage: (from: number, to: number) => PromiseLike<{ data: T[] | null; error: unknown }>) {
@@ -58,4 +58,30 @@ export function getCast(sb: SupabaseClient, opts: { ids?: string[]; activeOnly?:
     if (opts.activeOnly) q = q.eq("active", true);
     return q.range(a, b);
   });
+}
+
+// Rehearsals between two dates, with the ids of who's called.
+// For a performer, the database only returns rehearsals they're called to (and only their own id).
+export async function getRehearsals(sb: SupabaseClient, fromDate: string, toDate: string, ids?: string[]): Promise<Rehearsal[]> {
+  type Raw = Omit<Rehearsal, "cast"> & { rehearsal_cast: { cast_member_id: string }[] };
+  let raw: Raw[];
+  try {
+    raw = await pages<Raw>((a, b) =>
+    sb
+      .from("rehearsals")
+      .select("id, title, date, start_time, end_time, location, notes, rehearsal_cast(cast_member_id)")
+      .gte("date", fromDate)
+      .lte("date", toDate)
+      .order("date")
+      .order("start_time")
+      .order("id")
+      .range(a, b),
+    );
+  } catch (e) {
+    // e.g. the rehearsals table hasn't been added yet: show none rather than break the page.
+    console.error("getRehearsals failed", e);
+    return [];
+  }
+  const out = raw.map(({ rehearsal_cast, ...r }) => ({ ...r, cast: rehearsal_cast.map((x) => x.cast_member_id) }));
+  return ids ? out.filter((r) => r.cast.some((c) => ids.includes(c))) : out;
 }

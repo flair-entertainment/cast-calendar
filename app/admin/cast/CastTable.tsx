@@ -134,8 +134,15 @@ export function CastTable({ cast, today, startNewOnly = false }: { cast: CastMem
           )}
           <button
             disabled={!sel.size}
+            onClick={() => router.push(`/admin/rehearsals/new?ids=${[...sel].join(",")}`)}
+            className={`${selectedNew.length ? "" : "ml-auto "}rounded-lg border border-char bg-white px-5 py-2.5 font-semibold disabled:opacity-40`}
+          >
+            Add rehearsal
+          </button>
+          <button
+            disabled={!sel.size}
             onClick={() => router.push(`/admin/compare?ids=${[...sel].join(",")}`)}
-            className={`${selectedNew.length ? "" : "ml-auto "}rounded-lg bg-char text-beige px-6 py-2.5 font-semibold disabled:opacity-40`}
+            className="rounded-lg bg-char text-beige px-6 py-2.5 font-semibold disabled:opacity-40"
           >
             Compare {sel.size ? `${sel.size} ` : ""}→
           </button>

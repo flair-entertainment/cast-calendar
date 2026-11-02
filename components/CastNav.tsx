@@ -3,6 +3,7 @@ import { SignOut } from "./SignOut";
 
 const tabs = [
   { href: "/me", label: "My availability" },
+  { href: "/me/rehearsals", label: "My rehearsals" },
   { href: "/me/week", label: "My regular week" },
   { href: "/me/details", label: "My details" },
 ];

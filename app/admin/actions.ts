@@ -1,6 +1,9 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
+import { cellFor, rehearsalBlocks, toMin, type AvailabilityRow, type WeekRow } from "@/lib/availability";
+import { getRehearsals } from "@/lib/data";
 import { requireAdmin } from "@/lib/auth";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { LOCATIONS, ROLES } from "@/lib/config";
@@ -31,6 +34,77 @@ export async function confirmCast(ids: string[]) {
   const { error } = await createAdminClient().from("cast_members").update({ confirmed: true }).in("id", list);
   revalidatePath("/admin/cast");
   return { ok: !error };
+}
+
+// ---------- rehearsals ----------
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const DATE = /^\d{4}-\d{2}-\d{2}$/;
+const TIME = /^\d{2}:\d{2}$/;
+
+// Add or edit a rehearsal and who's called. Managers only (checked on the server).
+export async function saveRehearsal(_: unknown, formData: FormData) {
+  await requireAdmin();
+  const id = String(formData.get("id") ?? "");
+  const title = String(formData.get("title") ?? "").trim().slice(0, 120);
+  const date = String(formData.get("date") ?? "");
+  const start = String(formData.get("start") ?? "").slice(0, 5);
+  const end = String(formData.get("end") ?? "").slice(0, 5);
+  const location = String(formData.get("location") ?? "").trim().slice(0, 200) || null;
+  const notes = String(formData.get("notes") ?? "").trim().slice(0, 1000) || null;
+  const cast = [...new Set(formData.getAll("cast").map(String))].filter((x) => UUID.test(x));
+
+  if (!title) return { ok: false, message: "Give it a title, e.g. Elf rehearsal." };
+  if (!DATE.test(date)) return { ok: false, message: "Pick a date." };
+  if (!TIME.test(start) || !TIME.test(end) || end <= start) return { ok: false, message: "Check the times: the end must be after the start." };
+  if (!cast.length) return { ok: false, message: "Tick at least one person who's called." };
+
+  const admin = createAdminClient();
+  const fields = { title, date, start_time: start, end_time: end, location, notes, updated_at: new Date().toISOString() };
+  let rid = id;
+  if (id) {
+    if (!UUID.test(id)) return { ok: false, message: "Something went wrong. Please try again." };
+    const { error } = await admin.from("rehearsals").update(fields).eq("id", id);
+    if (error) return { ok: false, message: "Couldn't save. Please try again." };
+    await admin.from("rehearsal_cast").delete().eq("rehearsal_id", id);
+  } else {
+    const { data, error } = await admin.from("rehearsals").insert(fields).select("id").single();
+    if (error || !data) return { ok: false, message: "Couldn't save. Please try again." };
+    rid = data.id;
+  }
+  const { error } = await admin.from("rehearsal_cast").insert(cast.map((c) => ({ rehearsal_id: rid, cast_member_id: c })));
+  if (error) return { ok: false, message: "Saved the rehearsal, but not everyone called. Please open it and save again." };
+  revalidatePath("/admin/rehearsals");
+  redirect("/admin/rehearsals");
+}
+
+export async function deleteRehearsal(formData: FormData) {
+  await requireAdmin();
+  const id = String(formData.get("id") ?? "");
+  if (UUID.test(id)) await createAdminClient().from("rehearsals").delete().eq("id", id);
+  revalidatePath("/admin/rehearsals");
+  redirect("/admin/rehearsals");
+}
+
+// Who isn't free for a rehearsal time: { castId: reason }. Used to warn while picking people.
+export async function busyFor(date: string, start: string, end: string, ignoreId?: string) {
+  const { supabase } = await requireAdmin();
+  if (!DATE.test(date) || !TIME.test(start.slice(0, 5)) || !TIME.test(end.slice(0, 5)) || end <= start) return {};
+  const [{ data: rows }, { data: weeks }, rehearsals] = await Promise.all([
+    supabase.from("availability").select("cast_member_id, date, status, start_time, end_time, note").eq("date", date),
+    supabase.from("regular_week").select("cast_member_id, days, start_time, end_time, note"),
+    getRehearsals(supabase, date, date),
+  ]);
+  const others = rehearsals.filter((r) => r.id !== ignoreId);
+  const ids = new Set([...(rows ?? []).map((r) => r.cast_member_id), ...(weeks ?? []).map((w) => w.cast_member_id), ...others.flatMap((r) => r.cast)]);
+  const win = { s: toMin(start), e: toMin(end) };
+  const out: Record<string, string> = {};
+  for (const id of ids) {
+    const row = (rows ?? []).find((r) => r.cast_member_id === id) as AvailabilityRow | undefined;
+    const wk = ((weeks ?? []) as WeekRow[]).filter((w) => w.cast_member_id === id);
+    const c = cellFor(date, row, wk, win, rehearsalBlocks(others, date, id));
+    if (c.st !== "free" && c.st !== "confirmed") out[id] = c.why;
+  }
+  return out;
 }
 
 // ---------- CSV import ----------
