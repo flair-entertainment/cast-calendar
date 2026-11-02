@@ -4,6 +4,7 @@ import { SignOut } from "./SignOut";
 const tabs = [
   { href: "/admin/cast", label: "Cast list" },
   { href: "/admin/compare", label: "Compare" },
+  { href: "/admin/rehearsals", label: "Rehearsals" },
   { href: "/admin/import", label: "Add cast" },
 ];
 

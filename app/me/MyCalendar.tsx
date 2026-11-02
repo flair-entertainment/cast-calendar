@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState, useTransition } from "react";
 import { Saved } from "@/components/Saved";
-import { addDays, daysBetween, fmtMin, hhmm, monthDays, monthLabel, shiftMonth, toMin, ukDate, weekday, type WeekRow } from "@/lib/availability";
+import { addDays, daysBetween, fmtMin, hhmm, monthDays, monthLabel, shiftMonth, toMin, ukDate, weekday, type Rehearsal, type WeekRow } from "@/lib/availability";
 import type { Status } from "@/lib/config";
 import { getMonth, setBusy, setDays } from "./actions";
 
@@ -13,9 +13,10 @@ const DAY_NAMES = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Frid
 const MONTH_NAMES = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
 const longDate = (d: string) => `${DAY_NAMES[weekday(d)]} ${Number(d.slice(8))} ${MONTH_NAMES[Number(d.slice(5, 7)) - 1]}`;
 
-type Props = { memberId?: string; month: string; today: string; rows: Row[]; weeks: WeekRow[] };
+type Props = { month: string; today: string; rows: Row[]; weeks: WeekRow[]; rehearsals: Rehearsal[] };
 
-export function MyCalendar({ month: startMonth, today, rows, weeks }: Props) {
+export function MyCalendar({ month: startMonth, today, rows, weeks, rehearsals }: Props) {
+  const [rehs, setRehs] = useState(rehearsals);
   const [map, setMap] = useState(() => new Map(rows.map((r) => [r.date, r])));
   const [month, setMonth] = useState(startMonth);
   const [loading, setLoading] = useState(false);
@@ -34,8 +35,10 @@ export function MyCalendar({ month: startMonth, today, rows, weeks }: Props) {
     if (loaded.current.has(m)) return;
     loaded.current.add(m);
     const days = monthDays(m);
-    const data = await getMonth(days[0], days[days.length - 1]).catch(() => null);
-    if (!data) { loaded.current.delete(m); return; }
+    const res = await getMonth(days[0], days[days.length - 1]).catch(() => null);
+    if (!res) { loaded.current.delete(m); return; }
+    const data = res.rows ?? [];
+    setRehs((old) => [...old.filter((r) => !res.rehearsals.some((x) => x.id === r.id)), ...res.rehearsals]);
     setMap((old) => {
       const next = new Map(old);
       data.forEach((r) => { if (!next.has(r.date)) next.set(r.date, r as Row); });
@@ -89,6 +92,8 @@ export function MyCalendar({ month: startMonth, today, rows, weeks }: Props) {
   }
 
   const weekFor = (d: string) => weeks.filter((w) => w.days.includes(weekday(d)));
+  const rehFor = (d: string) => rehs.filter((r) => r.date === d).sort((a, b) => a.start_time.localeCompare(b.start_time));
+  const short = (t: string) => hhmm(t).replace(":00", "");
 
   return (
     <div>
@@ -110,17 +115,19 @@ export function MyCalendar({ month: startMonth, today, rows, weeks }: Props) {
           const allDay = r && r.status !== "available" && !r.start_time;
           const part = r && r.status !== "available" && r.start_time && r.end_time;
           const regular = weekFor(d).length > 0;
+          const reh = rehFor(d);
           return (
             <button
               key={d}
               onClick={() => tap(d)}
               disabled={past}
               className={`aspect-square rounded-lg border text-sm flex flex-col items-center justify-center gap-0.5 ${allDay ? (r!.status === "maybe" ? "st-maybe" : "st-out") : "bg-white"} ${past ? "opacity-35" : ""} ${picked ? "ring-4 ring-char" : "border-line"}`}
-              aria-label={`${ukDate(d)}: ${allDay ? "busy all day" : part ? `busy ${hhmm(r!.start_time!)} to ${hhmm(r!.end_time!)}` : "free"}`}
+              aria-label={`${ukDate(d)}: ${allDay ? "busy all day" : part ? `busy ${hhmm(r!.start_time!)} to ${hhmm(r!.end_time!)}` : "free"}${reh.length ? `, rehearsal ${hhmm(reh[0].start_time)}` : ""}`}
             >
               <span className={d === today ? "flex h-7 w-7 items-center justify-center rounded-full bg-char text-beige font-semibold" : ""}>{Number(d.slice(8))}</span>
-              {part && <span className="rounded bg-[#c2463e] px-1 text-[9px] leading-tight text-white">{hhmm(r!.start_time!).replace(":00", "")}–{hhmm(r!.end_time!).replace(":00", "")}</span>}
-              {!r && regular && <span className="h-1 w-4 rounded-full bg-muted/40" />}
+              {reh.length > 0 && <span className="rounded bg-char px-1 text-[9px] leading-tight text-beige">{short(reh[0].start_time)}–{short(reh[0].end_time)}{reh.length > 1 ? "+" : ""}</span>}
+              {part && !reh.length && <span className="rounded bg-[#c2463e] px-1 text-[9px] leading-tight text-white">{short(r!.start_time!)}–{short(r!.end_time!)}</span>}
+              {!r && !reh.length && regular && <span className="h-1 w-4 rounded-full bg-muted/40" />}
             </button>
           );
         })}
@@ -149,6 +156,7 @@ export function MyCalendar({ month: startMonth, today, rows, weeks }: Props) {
           date={openDay}
           row={map.get(openDay)}
           regular={weekFor(openDay)}
+          rehearsals={rehFor(openDay)}
           onClose={() => setOpenDay(null)}
           onAllDay={(n) => applyDays([openDay], true, n)}
           onHours={(s, e, n) => applyHours(openDay, s, e, n)}
@@ -172,13 +180,14 @@ type DayProps = {
   date: string;
   row: Row | undefined;
   regular: WeekRow[];
+  rehearsals: Rehearsal[];
   onClose: () => void;
   onAllDay: (note?: string) => void;
   onHours: (start: string, end: string, note?: string) => void;
   onClear: () => void;
 };
 
-function DayView({ date, row, regular, onClose, onAllDay, onHours, onClear }: DayProps) {
+function DayView({ date, row, regular, rehearsals, onClose, onAllDay, onHours, onClear }: DayProps) {
   const busyRow = row && row.status !== "available" ? row : undefined;
   const [from, setFrom] = useState(busyRow?.start_time ? hhmm(busyRow.start_time) : "");
   const [to, setTo] = useState(busyRow?.end_time ? hhmm(busyRow.end_time) : "");
@@ -191,7 +200,7 @@ function DayView({ date, row, regular, onClose, onAllDay, onHours, onClear }: Da
 
   // Start the timeline around 09:00 (or the busy time).
   useEffect(() => {
-    const first = busyRow?.start_time ? toMin(busyRow.start_time) : 9 * 60;
+    const first = busyRow?.start_time ? toMin(busyRow.start_time) : rehearsals[0] ? toMin(rehearsals[0].start_time) : 9 * 60;
     scroller.current?.scrollTo({ top: Math.max(0, y(first) - 20) });
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -241,6 +250,12 @@ function DayView({ date, row, regular, onClose, onAllDay, onHours, onClear }: Da
           {regular.map((w) => (
             <div key={w.id ?? w.note} className="pointer-events-none absolute left-16 right-2 rounded-md bg-[#e4ddd1] px-2 py-1 text-xs text-ink/80" style={{ top: y(toMin(w.start_time)), height: Math.max(18, y(toMin(w.end_time)) - y(toMin(w.start_time))) }}>
               {w.note || "Regular"} · {hhmm(w.start_time)}–{hhmm(w.end_time)}
+            </div>
+          ))}
+          {/* Flair rehearsals (dark) */}
+          {rehearsals.map((r) => (
+            <div key={r.id} className="pointer-events-none absolute left-16 right-2 z-[1] overflow-hidden rounded-md bg-char px-2 py-1 text-xs text-beige shadow" style={{ top: y(toMin(r.start_time)), height: Math.max(20, y(toMin(r.end_time)) - y(toMin(r.start_time))) }}>
+              <b>{r.title}</b> · {hhmm(r.start_time)}–{hhmm(r.end_time)}{r.location ? ` · ${r.location}` : ""}
             </div>
           ))}
           {/* Busy block (red) */}

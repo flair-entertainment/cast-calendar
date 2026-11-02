@@ -3,6 +3,7 @@
 Flair's performer availability system.
 
 - **Performers** log in on their phone and mark the days they can't do, plus their regular week (day job, classes). Days they leave blank count as available.
+- **Managers** add rehearsals and choose who's called; performers see them on their calendar.
 - **Managers** see everyone on one calendar, filter by role, location and skills, pick any group of people and compare their availability side by side, including for a particular time of day (e.g. evening rehearsals).
 - **Privacy:** performers can only ever see and change their own details. This is enforced inside the database, not just hidden on the page.
 
@@ -11,10 +12,12 @@ Flair's performer availability system.
 | Who | Page | What it does |
 |---|---|---|
 | Performers | My availability | Month calendar; blank = free. Tap a day to open it hour by hour (like Google Calendar) and mark busy all day or certain hours. "Holiday or several days" marks a run of days. |
+| Performers | My rehearsals | Every rehearsal they're called to: date, time, where and notes. Rehearsals also show on their calendar in black, and the next one shows at the top of My availability. They only ever see rehearsals they're called to, never who else is called. |
 | Performers | My regular week | Repeating commitments, e.g. day job Mon-Fri 09:00-17:00. |
 | Performers | My details | Name, phone, location, skills. |
 | Managers | Cast list | Where managers start. Tick the people you want (click anywhere on their row), then press Compare. Search by name; role, location, skill, active, out-of-date and new sign-up filters are under "Filters". |
 | Managers | Compare | People you're comparing down the left, hours across (08:00 to midnight), one day at a time; pick the day along the top. Green = free, red = busy with the reason. Tap an hour (e.g. 19:00) to see how many are free, with free people moved to the top. 2 weeks and Month switch to the day grid. |
+| Managers | Rehearsals | Add a rehearsal (title, date, times, where, notes) and tick who's called. Anyone not free at that time is flagged in red with the reason. Start one from the Cast list (tick people, then **Add rehearsal**) or from Compare (tap an hour, then **Add rehearsal for the free**). Click a rehearsal to change it or delete it. Rehearsals count as busy in Compare (black blocks). |
 | Managers | Cast profile | One person's details, regular week, upcoming dates and when they last updated. Managers can change roles, location and active here. |
 | Managers | Add cast | Upload a spreadsheet (CSV) to add or update cast in one go. They can log in straight away. |
 
@@ -31,7 +34,7 @@ Flair's performer availability system.
 
 ### 1. Create the database
 1. In Supabase, open your project, then **SQL Editor** in the left menu, then **New query**.
-2. Open `supabase/migrations/20261028000000_init.sql` from this repository, copy all of it, paste it in, click **Run**. You should see "Success". Then do the same, in date order, with every other file in `supabase/migrations/` (currently `20261028120000_multiple_roles.sql`, then `20261028150000_self_signup.sql`).
+2. Open `supabase/migrations/20261028000000_init.sql` from this repository, copy all of it, paste it in, click **Run**. You should see "Success". Then do the same, in date order, with every other file in `supabase/migrations/` (currently `20261028120000_multiple_roles.sql`, then `20261028150000_self_signup.sql`, then `20261102000000_rehearsals.sql`).
 3. Optional, for testing: do the same with `supabase/seed_test_data.sql`. This adds 300 FAKE cast members (names start with "TEST").
 4. Add yourself (and other managers) as managers. New query, then run, using lower-case emails:
    ```sql
@@ -91,13 +94,15 @@ Things you can change in one place: roles, locations, the "out of date" number o
 
 ## How the security works (for whoever maintains this)
 - Every table has Row Level Security. Performers can read and change only their own rows; managers (emails in `app_admins`) can read everything. See the migration file.
+- Rehearsals: performers can read only rehearsals they're called to (and only their own "called" row, so they never see who else is called). Only managers change rehearsals, through server code.
 - Performers can only edit their name, phone, location and skills. Roles, active and email are changed by managers through server code.
 - The secret service role key is only used in `lib/supabase/admin.ts`, which can't be imported into browser code, and only after a server-side manager check (or to check an email is on the roster at login).
 - Logins: the login page only sends an email if the address is an active cast member or a manager. Self sign-up (`/join`) needs the join code (`SIGNUP_CODE`, server only) and creates the login on the server, so Supabase's own "Allow new users to sign up" stays off.
 - Search engines are blocked (`robots.txt` and a `noindex` header on every page).
 
 ## Ideas for next features
-- Flair bookings shown on the calendar (so double bookings show up)
+- Email performers when they're called to a rehearsal (or it changes)
+- Shows and other bookings, not just rehearsals
 - Monthly reminder email: "check your dates are up to date"
 - Export a Compare grid to share with a client
 - Manager page to add/remove managers instead of using SQL

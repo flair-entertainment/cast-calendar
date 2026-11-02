@@ -2,10 +2,10 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
-import { DOW, cellFor, getWindow, isAvailable, monthLabel, shortDate, ukDate, weekday, type AvailabilityRow, type Cell, type WeekRow } from "@/lib/availability";
+import { DOW, cellFor, getWindow, isAvailable, monthLabel, rehearsalBlocks, shortDate, ukDate, weekday, type AvailabilityRow, type Cell, type Rehearsal, type WeekRow } from "@/lib/availability";
 import { TIME_WINDOWS, type WindowKey } from "@/lib/config";
 
-export type PersonData = { id: string; name: string; desc: string; isNew: boolean; rows: Record<string, AvailabilityRow>; weeks: WeekRow[] };
+export type PersonData = { id: string; name: string; desc: string; isNew: boolean; rows: Record<string, AvailabilityRow>; weeks: WeekRow[]; rehearsals: Rehearsal[] };
 type Props = {
   ids: string[];
   days: string[];
@@ -48,7 +48,7 @@ export function CompareGrid({ ids, days, people: data, today, span, nav, initial
   const win = useMemo(() => getWindow(winKey, cs, ce), [winKey, cs, ce]);
   const winLabel = win.label;
   const people = useMemo(
-    () => data.map((p) => ({ ...p, cells: days.map((d) => cellFor(d, p.rows[d], p.weeks, win)) })),
+    () => data.map((p) => ({ ...p, cells: days.map((d) => cellFor(d, p.rows[d], p.weeks, win, rehearsalBlocks(p.rehearsals, d, p.id))) })),
     [data, days, win],
   );
   const N = people.length;

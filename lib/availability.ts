@@ -20,6 +20,23 @@ export type WeekRow = {
   note: string;
 };
 
+export type Rehearsal = {
+  id: string;
+  title: string;
+  date: string; // YYYY-MM-DD
+  start_time: string;
+  end_time: string;
+  location: string | null;
+  notes: string | null;
+  cast: string[]; // cast_member ids called (performers only ever get their own id here)
+};
+
+// A rehearsal as a busy block for someone's day.
+export const rehearsalBlocks = (rs: Rehearsal[], date: string, castId: string) =>
+  rs
+    .filter((r) => r.date === date && r.cast.includes(castId))
+    .map((r) => ({ s: toMin(r.start_time), e: toMin(r.end_time), label: `Rehearsal: ${r.title} ${hhmm(r.start_time)}-${hhmm(r.end_time)}` }));
+
 // What a manager sees in a cell.
 //  confirmed: performer marked the day available
 //  free:      nothing marked and no regular-week clash (counts as available)
@@ -117,14 +134,17 @@ export function cellFor(
   row: AvailabilityRow | undefined,
   week: WeekRow[],
   win: { s: number; e: number },
+  extra: { s: number; e: number; label: string }[] = [], // e.g. rehearsals
 ): Cell {
   const timed = Boolean(row?.start_time && row?.end_time);
   const note = row?.note ? `: ${row.note}` : "";
   // A whole-day mark decides the day outright.
   if (row && !timed) {
-    if (row.status === "unavailable") return { st: "out", why: `Unavailable${note}` };
-    if (row.status === "maybe") return { st: "maybe", why: `Maybe${note}` };
-    return { st: "confirmed", why: `Confirmed available${note}` };
+    if (extra.length && row.status !== "unavailable") {
+      // A rehearsal still counts, even on a day marked available/maybe: fall through to the time check.
+    } else if (row.status === "unavailable") return { st: "out", why: `Unavailable${note}` };
+    else if (row.status === "maybe") return { st: "maybe", why: `Maybe${note}` };
+    else return { st: "confirmed", why: `Confirmed available${note}` };
   }
 
   // Otherwise work out which part of the time needed is taken by
@@ -134,7 +154,8 @@ export function cellFor(
     blocks.push({ s: toMin(row.start_time!), e: toMin(row.end_time!), label: `Busy ${hhmm(row.start_time!)}-${hhmm(row.end_time!)}${note}` });
   }
   const wd = weekday(date);
-  for (const r of week) if (r.days.includes(wd)) blocks.push({ s: toMin(r.start_time), e: toMin(r.end_time), label: r.note || "Regular commitment" });
+  for (const r of week) if (r.days.includes(wd)) blocks.push({ s: toMin(r.start_time), e: toMin(r.end_time), label: `Regular week: ${r.note || "regular commitment"}` });
+  blocks.push(...extra);
 
   let free: [number, number][] = [[win.s, win.e]];
   const clashes = new Set<string>();
@@ -158,11 +179,12 @@ export function cellFor(
   }
 
   if (!clashes.size) {
-    if (row && timed && row.status === "available") return { st: "confirmed", why: `Confirmed available${note}` };
+    if (row && !timed && row.status === "maybe") return { st: "maybe", why: `Maybe${note}` };
+    if (row && row.status === "available") return { st: "confirmed", why: `Confirmed available${note}` };
     return { st: "free", why: "" };
   }
   const label = [...clashes].join(", ");
-  if (!free.length) return { st: "out", why: label.startsWith("Busy") ? label : `Regular week: ${label}` };
+  if (!free.length) return { st: "out", why: label };
   return { st: "part", why: `Only free ${free.map(([a, b]) => `${fmtMin(a)} to ${fmtMin(b)}`).join(", ")} (${label})` };
 }
 

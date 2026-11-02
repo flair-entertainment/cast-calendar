@@ -3,7 +3,7 @@ import { AdminNav } from "@/components/AdminNav";
 import { requireAdmin } from "@/lib/auth";
 import { addDays, monthDays, range, shiftMonth, todayLondon, weekday, type AvailabilityRow, type WeekRow } from "@/lib/availability";
 import { describe, type WindowKey } from "@/lib/config";
-import { getAvailability, getCast, getWeeks } from "@/lib/data";
+import { getAvailability, getCast, getRehearsals, getWeeks } from "@/lib/data";
 import { CompareGrid, type PersonData } from "./CompareGrid";
 import { WeekView } from "./WeekView";
 
@@ -39,10 +39,11 @@ export default async function Compare({ searchParams }: { searchParams: Promise<
     );
   }
 
-  const [cast, rows, weeks] = await Promise.all([
+  const [cast, rows, weeks, rehearsals] = await Promise.all([
     getCast(supabase, { ids }),
     getAvailability(supabase, days[0], days[days.length - 1], ids),
     getWeeks(supabase, ids),
+    getRehearsals(supabase, days[0], days[days.length - 1], ids),
   ]);
   const people: PersonData[] = cast.map((c) => ({
     id: c.id,
@@ -51,6 +52,7 @@ export default async function Compare({ searchParams }: { searchParams: Promise<
     isNew: !c.confirmed,
     rows: Object.fromEntries(rows.filter((r) => r.cast_member_id === c.id).map((r) => [r.date, r])) as Record<string, AvailabilityRow>,
     weeks: weeks.filter((w) => w.cast_member_id === c.id) as WeekRow[],
+    rehearsals: rehearsals.filter((r) => r.cast.includes(c.id)).map((r) => ({ ...r, cast: [c.id] })),
   }));
 
   const nav = {

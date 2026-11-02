@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useMemo, useState } from "react";
-import { DOW, cellFor, fmtMin, hhmm, monthLabel, toMin, weekday } from "@/lib/availability";
+import { DOW, cellFor, fmtMin, hhmm, monthLabel, rehearsalBlocks, toMin, weekday } from "@/lib/availability";
 import type { PersonData } from "./CompareGrid";
 
 // People down the left, hours across, one day at a time. Green = free, red = busy
@@ -22,12 +22,13 @@ type Props = {
   nav: { prev: string; next: string; today: string };
 };
 
-type Block = { s: number; e: number; label: string };
+type Block = { s: number; e: number; label: string; reh?: boolean };
 
 function busyBlocks(p: PersonData, d: string): Block[] {
   const r = p.rows[d];
-  if (r && r.status !== "available" && !r.start_time) return [{ s: START, e: END, label: `${r.status === "maybe" ? "Maybe" : "Busy"}${r.note ? ` · ${r.note}` : " all day"}` }];
-  const out: Block[] = [];
+  const reh: Block[] = p.rehearsals.filter((x) => x.date === d).map((x) => ({ s: toMin(x.start_time), e: toMin(x.end_time), label: `${x.title} ${hhmm(x.start_time)}–${hhmm(x.end_time)}`, reh: true }));
+  if (r && r.status !== "available" && !r.start_time) return [{ s: START, e: END, label: `${r.status === "maybe" ? "Maybe" : "Busy"}${r.note ? ` · ${r.note}` : " all day"}` }, ...reh];
+  const out: Block[] = [...reh];
   for (const w of p.weeks) if (w.days.includes(weekday(d))) out.push({ s: toMin(w.start_time), e: toMin(w.end_time), label: w.note || "Busy" });
   if (r && r.status !== "available" && r.start_time && r.end_time) {
     out.push({ s: toMin(r.start_time), e: toMin(r.end_time), label: `${r.status === "maybe" ? "Maybe " : ""}${hhmm(r.start_time)}–${hhmm(r.end_time)}${r.note ? ` ${r.note}` : ""}` });
@@ -36,7 +37,7 @@ function busyBlocks(p: PersonData, d: string): Block[] {
 }
 
 const freeAt = (p: PersonData, d: string, t: number) => {
-  const c = cellFor(d, p.rows[d], p.weeks, { s: t, e: t + 60 });
+  const c = cellFor(d, p.rows[d], p.weeks, { s: t, e: t + 60 }, rehearsalBlocks(p.rehearsals, d, p.id));
   return c.st === "free" || c.st === "confirmed";
 };
 
@@ -88,7 +89,15 @@ export function WeekView({ ids, days, people, today, nav }: Props) {
         <div className="mb-3 flex items-center gap-3 rounded-xl bg-char px-4 py-3 text-beige">
           <b className="text-lg">{fmtMin(hour)}</b>
           <span>{freeCount} of {people.length} free</span>
-          <button onClick={() => setHour(null)} className="ml-auto" aria-label="Clear time">✕</button>
+          {freeCount > 0 && (
+            <Link
+              href={`/admin/rehearsals/new?date=${day}&start=${fmtMin(hour)}&ids=${rows.filter((x) => x.free).map((x) => x.p.id).join(",")}`}
+              className="ml-auto rounded-lg bg-beige px-3 py-1.5 text-sm font-semibold text-ink"
+            >
+              Add rehearsal for the {freeCount} free
+            </Link>
+          )}
+          <button onClick={() => setHour(null)} className={freeCount > 0 ? "" : "ml-auto"} aria-label="Clear time">✕</button>
         </div>
       )}
 
@@ -125,7 +134,7 @@ export function WeekView({ ids, days, people, today, nav }: Props) {
                   <div
                     key={i}
                     title={`${p.name}: ${b.label}`}
-                    className="absolute inset-y-1 overflow-hidden whitespace-nowrap rounded bg-[#c2463e] px-1.5 text-[11px] leading-8 text-white"
+                    className={`absolute inset-y-1 overflow-hidden whitespace-nowrap rounded px-1.5 text-[11px] leading-8 ${b.reh ? "z-[1] bg-char text-beige" : "bg-[#c2463e] text-white"}`}
                     style={{ left: x(b.s), width: Math.max(4, x(b.e) - x(b.s)) }}
                   >
                     {b.label}
