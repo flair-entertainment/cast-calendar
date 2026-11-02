@@ -41,6 +41,7 @@ export function JoinForm() {
           <button disabled={checking} className={button}>{checking ? "Checking…" : "Log in"}</button>
           {checked && !checked.ok && <p className="text-sm text-red-700">{checked.message}</p>}
         </form>
+        <p className="text-sm text-muted">Not in your inbox? Check junk.</p>
       </div>
     );
   }

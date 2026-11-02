@@ -41,13 +41,13 @@ Flair's performer availability system.
 ### 2. Login settings in Supabase
 1. **Authentication > Sign In / Providers > Email**: make sure Email is on. Turn **off** "Allow new users to sign up" (we create logins ourselves, so the site stays invite-only).
 2. **Authentication > URL Configuration**: set **Site URL** to the website address (e.g. `https://cast-calendar.vercel.app`). Under **Redirect URLs**, add `https://cast-calendar.vercel.app/auth/confirm` and `http://localhost:3000/auth/confirm`.
-3. **Authentication > Emails > Magic Link**: replace the message body with:
+3. **Authentication > Emails > Magic Link**: set the subject to `Your Flair Cast Calendar code` and the message body to:
    ```html
-   <h2>Your Flair Cast Calendar login</h2>
-   <p><a href="{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&type=email">Tap here to log in</a></p>
-   <p>Or type this code: <strong>{{ .Token }}</strong></p>
+   <p>Your Flair Cast Calendar login code is:</p>
+   <h2>{{ .Token }}</h2>
    <p>If you didn't ask for this, you can ignore it.</p>
    ```
+   (Code only, no link: emails without links are less likely to go to junk.)
 
 ### 3. Put it online with Vercel
 1. In Vercel, click **Add New > Project**, choose the `cast-calendar` repository, click **Import**.
@@ -63,14 +63,14 @@ Flair's performer availability system.
 Supabase's built-in email only sends a couple of emails an hour, so connect Resend:
 1. In Resend, add and verify Flair's domain (Resend shows DNS records to add wherever the Flair domain is managed; this can take a few hours to go live).
 2. In Resend, create an API key.
-3. In Supabase: **Authentication > Emails > SMTP Settings**, turn on custom SMTP: host `smtp.resend.com`, port `465`, username `resend`, password = the Resend API key, sender e.g. `noreply@your-flair-domain`, sender name `Flair`.
+3. In Supabase: **Authentication > Emails > SMTP Settings**, turn on custom SMTP: host `smtp.resend.com`, port `465`, username `resend`, password = the Resend API key, sender `calendar@flairentertainment.je`, sender name `Flair Cast Calendar`. Leave Resend's click and open tracking off (they push emails into junk).
 4. **Authentication > Rate Limits**: raise "emails per hour" (e.g. to 100) so a whole cast can log in on the same day.
 
 ### 5. Add the cast
 **Performers can sign themselves up:** send the website address plus `/join` (e.g. `https://cast-calendar.vercel.app/join`) and the join code in the performer group chat. They fill in their own details and get in straight away. They show as **NEW** on the Cast list until a manager confirms them on their profile (tick **Confirmed**, then Save). New sign-ups aren't counted on the Overview until they're confirmed. If someone signs up who shouldn't have, untick **Active** on their profile to switch off their access. If the code gets passed round outside Flair, change `SIGNUP_CODE` in Vercel and redeploy.
 
 **Or managers can add people:**
-Managers: **Add cast** page, upload the spreadsheet (columns `full_name,email,phone,roles,location,skills`). Then send everyone the website address. They enter their email, get a link and an 8-digit code, and they're in. They stay logged in on that phone. Tell them to add it to their home screen (instructions are on their My details page).
+Managers: **Add cast** page, upload the spreadsheet (columns `full_name,email,phone,roles,location,skills`). Then send everyone the website address. They enter their email, get an 8-digit code, and they're in. They stay logged in on that phone. Tell them to add it to their home screen (instructions are on their My details page).
 
 ## Removing the fake test data
 In Supabase SQL Editor run:

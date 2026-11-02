@@ -44,6 +44,7 @@ export function LoginForm({ error }: { error?: string }) {
             <button disabled={checking} className={button}>{checking ? "Checking…" : "Log in"}</button>
             {checked && !checked.ok && <p className="text-sm text-red-700">{checked.message}</p>}
           </form>
+          <p className="text-sm text-muted">Not in your inbox? Check junk. No email after 2 minutes? You may need to <a href="/join" className="underline font-medium text-ink">sign up first</a>.</p>
           <button onClick={() => location.reload()} className="text-sm underline text-muted">Use a different email</button>
         </div>
       )}
