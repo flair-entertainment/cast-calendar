@@ -22,6 +22,17 @@ export async function updateCastAdmin(formData: FormData) {
   revalidatePath("/admin/cast");
 }
 
+// Manager confirms several new sign-ups at once from the Cast list.
+export async function confirmCast(ids: string[]) {
+  await requireAdmin(); // checked on the server before using the secret key
+  const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  const list = [...new Set(ids)].filter((id) => uuid.test(id)).slice(0, 500);
+  if (!list.length) return { ok: false };
+  const { error } = await createAdminClient().from("cast_members").update({ confirmed: true }).in("id", list);
+  revalidatePath("/admin/cast");
+  return { ok: !error };
+}
+
 // ---------- CSV import ----------
 function parseCsv(text: string): string[][] {
   const rows: string[][] = [];
